@@ -39,12 +39,6 @@
 	.App-link {
 	  color: #ff3e00;
 	}
-	.App-logo {
-	  height: 36vmin;
-	  pointer-events: none;
-	  margin-bottom: 3rem;
-	  animation: App-logo-spin infinite 1.6s ease-in-out alternate;
-	}
 	@keyframes App-logo-spin {
 	  from {
 		transform: scale(1);
