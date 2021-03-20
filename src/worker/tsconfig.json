@@ -1,12 +1,18 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    // outputting declarations to disk is a hack just to silence a warning
+    // when src/main tries to import types from src/worker
+    "outDir": "../../dist/worker",
+    "declaration": true,
+    "declarationMap": true,
     "lib": ["esnext", "webworker"],
     "module": "esnext",
     "target": "esnext",
     "moduleResolution": "node",
     "composite": true,
     "strict": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "esModuleInterop": true
   }
 }

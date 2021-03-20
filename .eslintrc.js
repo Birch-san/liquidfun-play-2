@@ -15,7 +15,9 @@ module.exports = {
     'svelte3/typescript': require('typescript')
   },
   rules: {
-    'eol-last': 'off'
+    'eol-last': 'off',
+    'new-cap': 'off',
+    '@typescript-eslint/naming-convention': 'off'
   },
   overrides: [
     {

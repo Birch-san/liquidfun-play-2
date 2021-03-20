@@ -1,7 +1,10 @@
+const { dirname } = require('path')
+
 /** @type {import("snowpack").SnowpackUserConfig } */
 module.exports = {
   mount: {
     public: { url: '/', static: true },
+    [dirname(require.resolve('box2d-wasm'))]: { url: '/box2d-wasm', static: true },
     src: { url: '/dist' }
   },
   plugins: [

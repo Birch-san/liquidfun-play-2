@@ -1,4 +1,5 @@
 import App from './App.svelte'
+import type { Data } from '../worker/index'
 
 const app = new App({
   target: document.body
@@ -10,7 +11,7 @@ const worker = new Worker(new URL('../worker/index.js', import.meta.url), {
   type: 'module'
 })
 
-worker.onmessage = ({ data }: MessageEvent<import('../worker/index').Data>) =>
+worker.onmessage = ({ data }: MessageEvent<Data>) =>
   console.log(data.message)
 worker.onmessageerror = (event: MessageEvent) =>
   console.error('onmessageerror', event)
