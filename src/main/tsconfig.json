@@ -1,7 +1,7 @@
 {
   "extends": "@tsconfig/svelte/tsconfig.json",
-  "lib": ["esnext", "dom"],
   "compilerOptions": {
+    "lib": ["esnext", "dom"],
     "module": "esnext",
     "target": "esnext",
     "baseUrl": ".",
@@ -19,6 +19,7 @@
     "skipLibCheck": false
   },
   "references": [
-    { "path": "../worker" }
+    { "path": "../worker" },
+    { "path": "../protocol" }
   ]
 }

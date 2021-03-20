@@ -11,6 +11,7 @@
     "declaration": true,
     "declarationMap": true,
 
+    // importing DOM solely because the Emscripten types in box2D mention WebGLRenderingContext and MessageEvent
     "lib": ["esnext", "webworker"],
     "module": "esnext",
     "target": "esnext",
@@ -19,5 +20,8 @@
     "strict": true,
     "isolatedModules": true,
     "esModuleInterop": true
-  }
+  },
+  "references": [
+    { "path": "../protocol" }
+  ]
 }

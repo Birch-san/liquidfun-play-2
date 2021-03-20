@@ -1,5 +1,5 @@
 import App from './App.svelte'
-import type { Data } from '../worker/index'
+import type { FromMainThread, FromWorker } from '../protocol'
 
 const app = new App({
   target: document.body
@@ -11,12 +11,20 @@ const worker = new Worker(new URL('../worker/index.js', import.meta.url), {
   type: 'module'
 })
 
-worker.onmessage = ({ data }: MessageEvent<Data>) =>
-  console.log(data.message)
+worker.onmessage = ({ data: { message } }: MessageEvent<FromWorker>) =>
+  console.log(message)
 worker.onmessageerror = (event: MessageEvent) =>
   console.error('onmessageerror', event)
 worker.onerror = (event: ErrorEvent) =>
   console.error('onerror', event)
+
+const renderIntervalMs = 1 / 10 * 1000
+setInterval(() => {
+  const data: FromMainThread = {
+    message: 'please render'
+  }
+  worker.postMessage(data)
+}, renderIntervalMs)
 
 // Hot Module Replacement (HMR) - Remove this snippet to remove HMR.
 // Learn more: https://www.snowpack.dev/concepts/hot-module-replacement
