@@ -21,7 +21,7 @@ module.exports = {
     {
       files: ['*.ts', '*.tsx', '*.svelte'],
       parserOptions: {
-        project: ['./tsconfig.json'],
+        project: ['./src/main/tsconfig.json', './src/worker/tsconfig.json'],
         tsconfigRootDir: __dirname,
         extraFileExtensions: ['.svelte']
       }

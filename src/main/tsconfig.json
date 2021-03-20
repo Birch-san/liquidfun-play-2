@@ -1,10 +1,10 @@
 {
   "extends": "@tsconfig/svelte/tsconfig.json",
-  "include": ["src"],
+  "lib": ["esnext", "dom"],
   "compilerOptions": {
     "module": "esnext",
     "target": "esnext",
-    "baseUrl": "./",
+    "baseUrl": ".",
     /* paths - import rewriting/resolving */
     "paths": {
       // If you configured any Snowpack aliases, add them here.
@@ -15,6 +15,10 @@
     /* noEmit - Snowpack builds (emits) files, not tsc. */
     "noEmit": true,
     /* Additional Options */
-    "strict": true
-  }
+    "strict": true,
+    "skipLibCheck": false
+  },
+  "references": [
+    { "path": "../worker" }
+  ]
 }

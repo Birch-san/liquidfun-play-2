@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "lib": ["esnext", "webworker"],
+    "module": "esnext",
+    "target": "esnext",
+    "composite": true,
+    "strict": true
+  }
+}

@@ -4,3 +4,7 @@ declare module '*.module.css' {
   const classes: {[key: string]: string}
   export default classes
 }
+// declare module '*.worker' {
+//   const WorkerFactory: new () => Worker
+//   export default WorkerFactory
+// }

@@ -6,7 +6,7 @@ module.exports = {
   },
   plugins: [
     '@snowpack/plugin-svelte',
-    '@snowpack/plugin-typescript'
+    ['@snowpack/plugin-typescript', { args: '--project ./src/main' }]
   ],
   routes: [
     /* Enable an SPA Fallback in development: */
