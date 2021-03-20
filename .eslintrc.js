@@ -15,8 +15,6 @@ module.exports = {
     'svelte3/typescript': require('typescript')
   },
   rules: {
-    // indent: ['error', 'tab'],
-    // semi: 'error',
     'eol-last': 'off'
   },
   overrides: [
