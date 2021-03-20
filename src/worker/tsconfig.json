@@ -1,11 +1,16 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
-    // outputting declarations to disk is a hack just to silence a warning
-    // when src/main tries to import types from src/worker
+
+    // if you're tired of snowpack's TS build warning that worker/index.d.ts
+    // doesn't exist (when src/main tries to import types from src/worker)
+    // you can do a one-off `tsc --build src/main/tsconfig.json`
+    // to emit some .d.ts to disk.
+    // but otherwise this stuff about what/where to output is unused.
     "outDir": "../../dist/worker",
     "declaration": true,
     "declarationMap": true,
+
     "lib": ["esnext", "webworker"],
     "module": "esnext",
     "target": "esnext",
