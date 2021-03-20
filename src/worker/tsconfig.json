@@ -4,7 +4,9 @@
     "lib": ["esnext", "webworker"],
     "module": "esnext",
     "target": "esnext",
+    "moduleResolution": "node",
     "composite": true,
-    "strict": true
+    "strict": true,
+    "isolatedModules": true
   }
 }

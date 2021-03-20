@@ -6,7 +6,9 @@ const app = new App({
 
 export default app
 
-const worker = new Worker(new URL('../worker/index.js', import.meta.url))
+const worker = new Worker(new URL('../worker/index.js', import.meta.url), {
+  type: 'module'
+})
 
 worker.onmessage = ({ data }: MessageEvent<import('../worker/index').Data>) =>
   console.log(data.message)
