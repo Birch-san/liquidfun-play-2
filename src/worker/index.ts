@@ -79,7 +79,7 @@ world.SetDebugDraw(debugDraw)
   bd.set_position(zero)
 
   // make falling boxes
-  const boxCount = 2
+  const boxCount = 10
   for (let i = 0; i < boxCount; i++) {
     const body = world.CreateBody(bd)
     body.CreateFixture(square, 1)
@@ -229,14 +229,17 @@ const onContext = (gl: WebGL2RenderingContext): void => {
     gl.drawElements(gl.TRIANGLES, indexArray.length, gl.UNSIGNED_SHORT, 0)
   }
 
+  const minimumWaitMs = 1 / 90 * 1000
   let lastRender: number = self.performance.now()
 
   const render: FrameRequestCallback = (): void => {
     const now: number = self.performance.now()
     const intervalMs: number = now - lastRender
-    world.Step(intervalMs / 1000, 1, 1, 1)
-    lastRender = now
-    draw()
+    if (intervalMs > minimumWaitMs) {
+      world.Step(intervalMs / 1000, 1, 1, 1)
+      lastRender = now
+      draw()
+    }
     requestAnimationFrame(render)
   }
   requestAnimationFrame(render)
