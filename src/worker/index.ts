@@ -1,5 +1,7 @@
 import type { FromMain, ReadyFromWorker } from '../protocol'
 import { debugDrawBuffer, flushDebugDrawBuffer } from './debugDraw'
+import type { M3 } from './m3'
+import * as m3 from './m3'
 
 self.onmessageerror = (event: MessageEvent) =>
   console.error('onmessageerror', event)
@@ -30,6 +32,7 @@ destroy(gravity)
 
 world.SetDebugDraw(debugDraw)
 
+const pixelsPerMeter = 32
 const sideLengthMetres = 1
 const square = new b2PolygonShape()
 square.SetAsBox(sideLengthMetres / 2, sideLengthMetres / 2)
@@ -123,6 +126,7 @@ const onContext = (gl: WebGL2RenderingContext): void => {
       buffer.set(box, offset)
       offset += box.length
     }
+    // console.log(buffer)
 
     const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, buffer)
 
@@ -133,9 +137,30 @@ const onContext = (gl: WebGL2RenderingContext): void => {
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
 
-    const coord = gl.getAttribLocation(program, 'coordinates')
-    gl.vertexAttribPointer(coord, 2, gl.FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(coord)
+    const positionAttr = gl.getAttribLocation(program, 'a_position')
+    // https://webglfundamentals.org/webgl/lessons/webgl-2d-matrices.html
+    gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(positionAttr)
+
+    {
+      const { translation, scaling, multiply } = m3
+      // Compute the matrices
+      const matrixAttr = gl.getUniformLocation(program, 'u_matrix')
+      const translationMatrix = translation(
+        gl.canvas.width / 2 / pixelsPerMeter,
+        -gl.canvas.height / 2 / pixelsPerMeter
+      )
+      const scaleMatrix = scaling(
+        -1 / (gl.canvas.width / 2 / pixelsPerMeter),
+        -1 / (gl.canvas.height / 2 / pixelsPerMeter)
+      )
+
+      // Multiply the matrices.
+      const matrix: M3 = multiply(scaleMatrix, translationMatrix)
+
+      // Set the matrix.
+      gl.uniformMatrix3fv(matrixAttr, false, matrix)
+    }
 
     gl.clearColor(0.5, 0.5, 0.5, 0.9)
     gl.enable(gl.DEPTH_TEST)
