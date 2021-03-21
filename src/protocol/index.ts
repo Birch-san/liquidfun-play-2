@@ -1,7 +1,14 @@
-export interface FromMainThread {
-  message: 'please render'
+interface AbstractFromMain<T extends string> {
+  type: T
 }
+export interface CanvasFromMain extends AbstractFromMain<'offscreenCanvas'> {
+  offscreenCanvas: OffscreenCanvas
+}
+export type FromMain = CanvasFromMain
 
-export interface FromWorker {
-  message: 'ready'
+interface AbstractFromWorker<T extends string> {
+  type: T
 }
+export interface ReadyFromWorker extends AbstractFromWorker<'ready'> {
+}
+export type FromWorker = ReadyFromWorker

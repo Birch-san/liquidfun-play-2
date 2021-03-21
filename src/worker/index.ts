@@ -1,4 +1,4 @@
-import type { FromMainThread, FromWorker } from '../protocol'
+import type { FromMain, ReadyFromWorker } from '../protocol'
 
 self.onmessageerror = (event: MessageEvent) =>
   console.error('onmessageerror', event)
@@ -41,19 +41,36 @@ body.SetAwake(true)
 body.SetEnabled(true)
 destroy(bd)
 
-const physicsIntervalMs = 1 / 10 * 1000
+let renderedThisFrame = false
+const physicsIntervalMs = 1 / 1 * 1000
 
 setInterval(() => {
   world.Step(physicsIntervalMs, 1, 1, 1)
+  renderedThisFrame = false
 }, physicsIntervalMs)
 
-self.onmessage = ({ data: { message } }: MessageEvent<FromMainThread>) => {
-  if (message === 'please render') {
-    world.DebugDraw()
+const onContext = (ctx: WebGL2RenderingContext): void => {
+  const render: FrameRequestCallback = (): void => {
+    if (!renderedThisFrame) {
+      world.DebugDraw()
+      renderedThisFrame = true
+    }
+    requestAnimationFrame(render)
+  }
+  requestAnimationFrame(render)
+}
+
+self.onmessage = ({ data }: MessageEvent<FromMain>) => {
+  if (data.type === 'offscreenCanvas') {
+    const ctx: WebGL2RenderingContext | null = data.offscreenCanvas.getContext('webgl2')
+    if (ctx === null) {
+      throw new Error('Failed to create WebGL2 rendering context')
+    }
+    onContext(ctx)
   }
 }
 
-const data: FromWorker = {
-  message: 'ready'
+const data: ReadyFromWorker = {
+  type: 'ready'
 }
 self.postMessage(data)
