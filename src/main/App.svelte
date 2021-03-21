@@ -3,8 +3,8 @@
   import { assert } from './assert'
   import type { CanvasFromMain, FromWorker } from '../protocol'
 
-  const width = 400
-  const height = 300
+  const width = 800
+  const height = 700
 
   let canvasElement: HTMLCanvasElement | undefined
   
