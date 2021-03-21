@@ -113,10 +113,10 @@ const onContext = (gl: WebGL2RenderingContext): void => {
     // const vertices: number[] = [-0.5, 0.5, -0.5, -0.5, 0.0, -0.5]
 
     const vertices: number[] = [
-      -0.5, 0.5, 0.0,
-      -0.5, -0.5, 0.0,
-      0.5, -0.5, 0.0,
-      0.5, 0.5, 0.0
+      -0.5, 0.5,
+      -0.5, -0.5,
+      0.5, -0.5,
+      0.5, 0.5
     ]
     const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, new Float32Array(vertices))
 
@@ -127,7 +127,7 @@ const onContext = (gl: WebGL2RenderingContext): void => {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
 
     const coord = gl.getAttribLocation(program, 'coordinates')
-    gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0)
+    gl.vertexAttribPointer(coord, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(coord)
 
     gl.clearColor(0.5, 0.5, 0.5, 0.9)
