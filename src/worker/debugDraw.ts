@@ -8,6 +8,7 @@ const {
   b2Vec2,
   b2Transform,
   getPointer,
+  HEAPF32,
   JSDraw,
   reifyArray,
   wrapPointer
@@ -23,11 +24,37 @@ const DrawSolidCircle: Box2D.JSDraw['DrawSolidCircle'] =
   const axis: Box2D.b2Vec2 = wrapPointer(axis_p, b2Vec2)
 }
 
+export type DrawableBox = Float32Array
+export interface DebugDrawBuffer {
+  boxes: DrawableBox[]
+}
+export const debugDrawBuffer: DebugDrawBuffer = ({
+  boxes: []
+})
+export const flushDebugDrawBuffer = (): void => {
+  const { boxes } = debugDrawBuffer
+  boxes.length = 0
+}
+
 const DrawPolygon: Box2D.JSDraw['DrawPolygon'] =
 (vertices_p: number, vertexCount: number, color_p: number): void => {
-  const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
+  // const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
   // TODO: reifyArray does a bunch of allocations, may not be suited for perf-sensitive tasks
-  const vertices: Box2D.b2Vec2[] = reifyArray(vertices_p, vertexCount, sizeOfB2Vec, b2Vec2)
+  // const vertices: Box2D.b2Vec2[] = reifyArray(vertices_p, vertexCount, sizeOfB2Vec, b2Vec2)
+  // console.log(vertices.map(({ x, y }: Box2D.b2Vec2) => `[${x}, ${y}]`).join(', '))
+  // [-0.5, 169.5], [0.5, 169.5], [0.5, 170.5], [-0.5, 170.5]
+  // debugDrawBuffer.boxes.push(new Float32Array())
+  // console.log(
+  //   HEAPF32[vertices_p >> 2],
+  //   HEAPF32[vertices_p + 4 >> 2],
+  //   HEAPF32[vertices_p + 8 >> 2],
+  //   HEAPF32[vertices_p + 12 >> 2],
+  //   HEAPF32[vertices_p + 16 >> 2],
+  //   HEAPF32[vertices_p + 20 >> 2],
+  //   HEAPF32[vertices_p + 24 >> 2],
+  //   HEAPF32[vertices_p + 28 >> 2]
+  // )
+  debugDrawBuffer.boxes.push(new Float32Array(HEAPF32.buffer, vertices_p, vertexCount * 2))
 }
 
 export const debugDraw = Object.assign<

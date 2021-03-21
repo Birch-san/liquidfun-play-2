@@ -1,4 +1,5 @@
 import type { FromMain, ReadyFromWorker } from '../protocol'
+import { debugDrawBuffer, flushDebugDrawBuffer } from './debugDraw'
 
 self.onmessageerror = (event: MessageEvent) =>
   console.error('onmessageerror', event)
@@ -46,9 +47,10 @@ body.SetLinearVelocity(zero)
 body.SetAwake(true)
 body.SetEnabled(true)
 destroy(bd)
+destroy(zero)
 
 let renderedThisFrame = false
-const physicsIntervalMs = 1 / 1 * 1000
+const physicsIntervalMs = 1 / 6 * 1000
 
 setInterval(() => {
   world.Step(physicsIntervalMs, 1, 1, 1)
@@ -110,18 +112,23 @@ const onContext = (gl: WebGL2RenderingContext): void => {
   }
 
   const draw = (): void => {
-    // const vertices: number[] = [-0.5, 0.5, -0.5, -0.5, 0.0, -0.5]
+    flushDebugDrawBuffer()
+    world.DebugDraw()
+    const { boxes } = debugDrawBuffer
 
-    const vertices: number[] = [
-      -0.5, 0.5,
-      -0.5, -0.5,
-      0.5, -0.5,
-      0.5, 0.5
-    ]
-    const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, new Float32Array(vertices))
+    const floatCount = boxes.reduce<number>((acc, { length }) => acc + length, 0)
+    const buffer = new Float32Array(floatCount)
+    let offset = 0
+    for (const box of boxes) {
+      buffer.set(box, offset)
+      offset += box.length
+    }
+
+    const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, buffer)
 
     const indices: number[] = [3, 2, 1, 3, 1, 0]
     const indexBuffer: WebGLBuffer = initBuffer(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices))
+    flushDebugDrawBuffer()
 
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
@@ -136,8 +143,6 @@ const onContext = (gl: WebGL2RenderingContext): void => {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
     // gl.drawArrays(gl.TRIANGLES, 0, 3)
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0)
-
-    // world.DebugDraw()
   }
 
   const render: FrameRequestCallback = (): void => {
