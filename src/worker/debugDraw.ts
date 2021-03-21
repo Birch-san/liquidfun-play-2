@@ -36,6 +36,8 @@ export const flushDebugDrawBuffer = (): void => {
   boxes.length = 0
 }
 
+const floatsPerVec2 = 2
+
 const DrawPolygon: Box2D.JSDraw['DrawPolygon'] =
 (vertices_p: number, vertexCount: number, color_p: number): void => {
   // const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
@@ -54,7 +56,12 @@ const DrawPolygon: Box2D.JSDraw['DrawPolygon'] =
   //   HEAPF32[vertices_p + 24 >> 2],
   //   HEAPF32[vertices_p + 28 >> 2]
   // )
-  debugDrawBuffer.boxes.push(new Float32Array(HEAPF32.buffer, vertices_p, vertexCount * 2))
+  if (vertexCount === 4) {
+    // debugDrawBuffer.boxes.push(new Float32Array(HEAPF32.buffer, vertices_p, vertexCount * 2))
+    const copy = new Float32Array(vertexCount * floatsPerVec2)
+    copy.set(new Float32Array(HEAPF32.buffer, vertices_p, vertexCount * floatsPerVec2))
+    debugDrawBuffer.boxes.push(copy)
+  }
 }
 
 export const debugDraw = Object.assign<

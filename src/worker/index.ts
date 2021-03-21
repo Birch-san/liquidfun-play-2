@@ -79,7 +79,7 @@ world.SetDebugDraw(debugDraw)
   bd.set_position(zero)
 
   // make falling boxes
-  const boxCount = 1
+  const boxCount = 2
   for (let i = 0; i < boxCount; i++) {
     const body = world.CreateBody(bd)
     body.CreateFixture(square, 1)
@@ -180,15 +180,15 @@ const onContext = (gl: WebGL2RenderingContext): void => {
     // }, []) [3, 2, 1, 3, 1, 0]
     const indexArray = new Uint16Array(boxes.length * 6)
     for (let boxIx = 0; boxIx < boxes.length; boxIx++) {
-      // const minVertexIx = boxIx * quadVertices
-      const minVertexIx = 0
+      const minVertexIx = boxIx * quadVertices
+      // const minVertexIx = 0
       const indexOffset = boxIx * quadOfTrisVertices
-      indexArray[indexOffset] = 3 + minVertexIx
-      indexArray[indexOffset + 1] = 2 + minVertexIx
-      indexArray[indexOffset + 2] = 1 + minVertexIx
-      indexArray[indexOffset + 3] = 3 + minVertexIx
-      indexArray[indexOffset + 4] = 1 + minVertexIx
-      indexArray[indexOffset + 5] = 0 + minVertexIx
+      indexArray[indexOffset] = 0 + minVertexIx
+      indexArray[indexOffset + 1] = 1 + minVertexIx
+      indexArray[indexOffset + 2] = 2 + minVertexIx
+      indexArray[indexOffset + 3] = 0 + minVertexIx
+      indexArray[indexOffset + 4] = 2 + minVertexIx
+      indexArray[indexOffset + 5] = 3 + minVertexIx
     }
     const indexBuffer: WebGLBuffer = initBuffer(gl.ELEMENT_ARRAY_BUFFER, indexArray)
     flushDebugDrawBuffer()
@@ -222,7 +222,7 @@ const onContext = (gl: WebGL2RenderingContext): void => {
     }
 
     gl.clearColor(0.5, 0.5, 0.5, 0.9)
-    gl.enable(gl.DEPTH_TEST)
+    // gl.enable(gl.DEPTH_TEST)
     gl.clear(gl.COLOR_BUFFER_BIT)
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
     // gl.drawArrays(gl.TRIANGLES, 0, 3)
