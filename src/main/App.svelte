@@ -53,6 +53,9 @@
 	.App {
 	  text-align: center;
 	}
+  canvas {
+    border: 1px solid black;
+  }
 </style>
   
 <div class="App">

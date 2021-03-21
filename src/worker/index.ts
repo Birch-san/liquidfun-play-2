@@ -97,38 +97,47 @@ const onContext = (gl: WebGL2RenderingContext): void => {
 
   gl.useProgram(program)
 
-  const initBuffer = (data: Float32Array): WebGLBuffer => {
+  const initBuffer = (target: GLenum, data: BufferSource): WebGLBuffer => {
     const buffer: WebGLBuffer | null = gl.createBuffer()
     if (buffer === null) {
       throw new Error('Failed to create WebGLBuffer')
     }
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW)
+    gl.bindBuffer(target, buffer)
+    gl.bufferData(target, data, gl.STATIC_DRAW)
     // gl.vertexAttribPointer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, null)
+    gl.bindBuffer(target, null)
     return buffer
   }
 
   const draw = (): void => {
-    // const n = 0
+    // const vertices: number[] = [-0.5, 0.5, -0.5, -0.5, 0.0, -0.5]
 
-    const vertices: number[] = [-0.5, 0.5, -0.5, -0.5, 0.0, -0.5]
-    const vertexBuffer: WebGLBuffer = initBuffer(new Float32Array(vertices))
+    const vertices: number[] = [
+      -0.5, 0.5, 0.0,
+      -0.5, -0.5, 0.0,
+      0.5, -0.5, 0.0,
+      0.5, 0.5, 0.0
+    ]
+    const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, new Float32Array(vertices))
+
+    const indices: number[] = [3, 2, 1, 3, 1, 0]
+    const indexBuffer: WebGLBuffer = initBuffer(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices))
 
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
+
     const coord = gl.getAttribLocation(program, 'coordinates')
-    gl.vertexAttribPointer(coord, 2, gl.FLOAT, false, 0, 0)
+    gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(coord)
 
     gl.clearColor(0.5, 0.5, 0.5, 0.9)
     gl.enable(gl.DEPTH_TEST)
-    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     gl.clear(gl.COLOR_BUFFER_BIT)
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
-    gl.drawArrays(gl.TRIANGLES, 0, 3)
+    // gl.drawArrays(gl.TRIANGLES, 0, 3)
+    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0)
 
     // world.DebugDraw()
-    // ctx.drawArrays(ctx.TRIANGLES, 0, n)
   }
 
   const render: FrameRequestCallback = (): void => {
