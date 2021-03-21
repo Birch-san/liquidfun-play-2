@@ -55,35 +55,35 @@ setInterval(() => {
   renderedThisFrame = false
 }, physicsIntervalMs)
 
-const onContext = (ctx: WebGLRenderingContext): void => {
+const onContext = (gl: WebGL2RenderingContext): void => {
   const compile = (type: GLenum, shaderStr: string): WebGLShader => {
-    const shader: WebGLShader | null = ctx.createShader(type)
+    const shader: WebGLShader | null = gl.createShader(type)
     if (shader === null) {
       throw new Error('Failed to create WebGLShader')
     }
-    ctx.shaderSource(shader, shaderStr)
-    ctx.compileShader(shader)
+    gl.shaderSource(shader, shaderStr)
+    gl.compileShader(shader)
 
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (!ctx.getShaderParameter(shader, ctx.COMPILE_STATUS)) {
-      const error: string | null = ctx.getShaderInfoLog(shader)
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      const error: string | null = gl.getShaderInfoLog(shader)
       throw new Error(`Shader compilation failed${error == null ? '' : `: ${error}`}`)
     }
     return shader
   }
   const link = (shaders: WebGLShader[]): WebGLProgram => {
-    const program: WebGLProgram | null = ctx.createProgram()
+    const program: WebGLProgram | null = gl.createProgram()
     if (program === null) {
       throw new Error('Failed to create WebGLProgram')
     }
     for (const shader of shaders) {
-      ctx.attachShader(program, shader)
+      gl.attachShader(program, shader)
     }
-    ctx.linkProgram(program)
+    gl.linkProgram(program)
 
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (!ctx.getProgramParameter(program, ctx.LINK_STATUS)) {
-      const error: string | null = ctx.getProgramInfoLog(program)
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      const error: string | null = gl.getProgramInfoLog(program)
       throw new Error(`WebGL program link failed${error == null ? '' : `: ${error}`}`)
     }
 
@@ -95,13 +95,39 @@ const onContext = (ctx: WebGLRenderingContext): void => {
 
   const program: WebGLProgram = link([vertexShader, fragmentShader])
 
-  ctx.useProgram(program)
+  gl.useProgram(program)
+
+  const initBuffer = (data: Float32Array): WebGLBuffer => {
+    const buffer: WebGLBuffer | null = gl.createBuffer()
+    if (buffer === null) {
+      throw new Error('Failed to create WebGLBuffer')
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW)
+    // gl.vertexAttribPointer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, null)
+    return buffer
+  }
 
   const draw = (): void => {
     // const n = 0
-    ctx.clear(ctx.COLOR_BUFFER_BIT | ctx.DEPTH_BUFFER_BIT)
 
-    world.DebugDraw()
+    const vertices: number[] = [-0.5, 0.5, -0.5, -0.5, 0.0, -0.5]
+    const vertexBuffer: WebGLBuffer = initBuffer(new Float32Array(vertices))
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+    const coord = gl.getAttribLocation(program, 'coordinates')
+    gl.vertexAttribPointer(coord, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(coord)
+
+    gl.clearColor(0.5, 0.5, 0.5, 0.9)
+    gl.enable(gl.DEPTH_TEST)
+    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
+    gl.drawArrays(gl.TRIANGLES, 0, 3)
+
+    // world.DebugDraw()
     // ctx.drawArrays(ctx.TRIANGLES, 0, n)
   }
 
@@ -117,11 +143,11 @@ const onContext = (ctx: WebGLRenderingContext): void => {
 
 self.onmessage = ({ data }: MessageEvent<FromMain>) => {
   if (data.type === 'offscreenCanvas') {
-    const ctx: WebGLRenderingContext | null = data.offscreenCanvas.getContext('webgl')
-    if (ctx === null) {
+    const gl: WebGL2RenderingContext | null = data.offscreenCanvas.getContext('webgl2')
+    if (gl === null) {
       throw new Error('Failed to create WebGL2 rendering context')
     }
-    onContext(ctx)
+    onContext(gl)
   }
 }
 
