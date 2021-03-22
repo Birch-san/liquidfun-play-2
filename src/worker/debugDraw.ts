@@ -1,3 +1,5 @@
+import { getQuad } from './quadAllocator'
+
 const { box2D } = await import('./box2d')
 const {
   b2Color,
@@ -58,7 +60,7 @@ const DrawPolygon: Box2D.JSDraw['DrawPolygon'] =
   // )
   if (vertexCount === 4) {
     // debugDrawBuffer.boxes.push(new Float32Array(HEAPF32.buffer, vertices_p, vertexCount * 2))
-    const copy = new Float32Array(vertexCount * floatsPerVec2)
+    const copy = getQuad()
     copy.set(new Float32Array(HEAPF32.buffer, vertices_p, vertexCount * floatsPerVec2))
     debugDrawBuffer.boxes.push(copy)
   }

@@ -1,3 +1,4 @@
+import { ensureQuadBufferFits, getQuadBufferSlice } from './quadBufferAllocator'
 import type { DebugDrawBuffer } from './debugDraw'
 import type { M3 } from './m3'
 import * as m3 from './m3'
@@ -99,7 +100,9 @@ export const onContext = (
     const quadVertices = 4
     const coordFloats = 2
     const quadFloats = quadVertices * coordFloats
-    const buffer = new Float32Array(boxes.length * quadFloats)
+    const desiredQuadBufferLength = boxes.length * quadFloats
+    ensureQuadBufferFits(desiredQuadBufferLength)
+    const buffer = getQuadBufferSlice(desiredQuadBufferLength)
     let offset = 0
     for (const box of boxes) {
       buffer.set(box, offset)
