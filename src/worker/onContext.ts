@@ -141,6 +141,7 @@ export const onContext = (
       }
     }
     const lineBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, lineArray)
+    const lineCount = lines.length
 
     flushDrawBuffer()
 
@@ -164,7 +165,9 @@ export const onContext = (
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
 
     gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
-    gl.drawArrays(gl.LINES, 0, lineArray.length)
+    gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(positionAttr)
+    gl.drawArrays(gl.LINES, 0, lineArray.length / 2)
   }
 
   const minimumWaitMs = 1 / frameLimit * 1000
