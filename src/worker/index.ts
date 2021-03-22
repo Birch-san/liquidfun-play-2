@@ -4,7 +4,7 @@ import type { FromMain, ReadyFromWorker } from '../protocol'
 import type { DebugDrawBuffer } from './debugDraw'
 import { debugDrawBuffer, flushDebugDrawBuffer } from './debugDraw'
 import { quadAllocator } from './floatArrayAllocator'
-import { growableQuadArray } from './growableTypedArray'
+import { growableQuadArray, growableQuadIndexArray } from './growableTypedArray'
 
 self.onmessageerror = (event: MessageEvent) =>
   console.error('onmessageerror', event)
@@ -17,6 +17,7 @@ const boxCount = 2
 const world = makeWorld(boxCount)
 quadAllocator.growN(boxCount)
 growableQuadArray.ensureLength(boxCount)
+growableQuadIndexArray.ensureLength(boxCount)
 
 const mainLoop: MainLoop = (intervalMs: number): void =>
   world.Step(intervalMs / 1000, 1, 1, 1)

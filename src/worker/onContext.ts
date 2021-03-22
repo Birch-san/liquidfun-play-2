@@ -1,4 +1,4 @@
-import { growableQuadArray } from './growableTypedArray'
+import { growableQuadArray, growableQuadIndexArray } from './growableTypedArray'
 import type { DebugDrawBuffer } from './debugDraw'
 import type { M3 } from './m3'
 import * as m3 from './m3'
@@ -101,9 +101,8 @@ export const onContext = (
     const quadVertices = 4
     const coordFloats = 2
     const quadFloats = quadVertices * coordFloats
-    const desiredQuadBufferLength = boxes.length * quadFloats
-    growableQuadArray.ensureLength(desiredQuadBufferLength)
-    const buffer = growableQuadArray.getSlice(desiredQuadBufferLength)
+    growableQuadArray.ensureLength(boxes.length)
+    const buffer = growableQuadArray.getSlice(boxes.length)
     let offset = 0
     for (const box of boxes) {
       buffer.set(box, offset)
@@ -112,7 +111,8 @@ export const onContext = (
 
     const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, buffer)
 
-    const indexArray = new Uint16Array(boxes.length * 6)
+    growableQuadIndexArray.ensureLength(boxes.length)
+    const indexArray = growableQuadIndexArray.getSlice(boxes.length)
     for (let boxIx = 0; boxIx < boxes.length; boxIx++) {
       const minVertexIx = boxIx * quadVertices
       const indexOffset = boxIx * quadOfTrisVertices

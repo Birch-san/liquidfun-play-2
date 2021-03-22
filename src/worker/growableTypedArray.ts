@@ -52,3 +52,19 @@ class GrowableQuadArray extends GrowableTypedArray<Float32Array> {
   }
 }
 export const growableQuadArray = new GrowableQuadArray()
+
+class GrowableQuadIndexArray extends GrowableTypedArray<Uint16Array> {
+  private readonly shortsPerQuad = 6
+  constructor () {
+    super(Uint16Array)
+  }
+
+  ensureLength (quads: number): void {
+    super.ensureLength(quads * this.shortsPerQuad)
+  }
+
+  getSlice (quads: number): Uint16Array {
+    return super.getSlice(quads * this.shortsPerQuad)
+  }
+}
+export const growableQuadIndexArray = new GrowableQuadIndexArray()
