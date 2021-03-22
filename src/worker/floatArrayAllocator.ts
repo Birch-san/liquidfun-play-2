@@ -38,7 +38,9 @@ export class FloatArrayAllocator {
 }
 
 const floatsPerVec2 = 2
-export const vec2Allocator = new FloatArrayAllocator(floatsPerVec2)
+const vec2PerLine = 2
+const floatsPerLine = floatsPerVec2 * vec2PerLine
+export const lineAllocator = new FloatArrayAllocator(floatsPerLine)
 
 const quadVertices = 4
 const floatsPerQuad = quadVertices * floatsPerVec2

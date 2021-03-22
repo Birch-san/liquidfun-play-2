@@ -3,8 +3,8 @@ import { onContext } from './onContext'
 import type { FromMain, ReadyFromWorker } from '../protocol'
 import type { DebugDrawBuffer } from './debugDraw'
 import { debugDrawBuffer, flushDebugDrawBuffer } from './debugDraw'
-import { quadAllocator } from './floatArrayAllocator'
-import { growableQuadArray, growableQuadIndexArray } from './growableTypedArray'
+import { quadAllocator, lineAllocator } from './floatArrayAllocator'
+import { growableQuadArray, growableQuadIndexArray, growableLineArray } from './growableTypedArray'
 
 self.onmessageerror = (event: MessageEvent) =>
   console.error('onmessageerror', event)
@@ -16,8 +16,10 @@ const { makeWorld } = await import('./world')
 const boxCount = 2
 const world = makeWorld(boxCount)
 quadAllocator.growN(boxCount)
+lineAllocator.growN(2)
 growableQuadArray.ensureLength(boxCount)
 growableQuadIndexArray.ensureLength(boxCount)
+growableLineArray.ensureLength(2)
 
 const mainLoop: MainLoop = (intervalMs: number): void =>
   world.Step(intervalMs / 1000, 1, 1, 1)

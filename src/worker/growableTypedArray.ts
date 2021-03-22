@@ -68,3 +68,22 @@ class GrowableQuadIndexArray extends GrowableTypedArray<Uint16Array> {
   }
 }
 export const growableQuadIndexArray = new GrowableQuadIndexArray()
+
+class GrowableLineArray extends GrowableTypedArray<Float32Array> {
+  private readonly floatsPerLine
+  constructor () {
+    super(Float32Array)
+    const floatsPerVec2 = 2
+    const vec2sPerLine = 2
+    this.floatsPerLine = floatsPerVec2 * vec2sPerLine
+  }
+
+  ensureLength (vectors: number): void {
+    super.ensureLength(vectors * this.floatsPerLine)
+  }
+
+  getSlice (vectors: number): Float32Array {
+    return super.getSlice(vectors * this.floatsPerLine)
+  }
+}
+export const growableLineArray = new GrowableLineArray()

@@ -1,4 +1,4 @@
-import { quadAllocator } from './floatArrayAllocator'
+import { quadAllocator, lineAllocator } from './floatArrayAllocator'
 
 const { box2D } = await import('./box2d')
 const {
@@ -27,15 +27,19 @@ const DrawSolidCircle: Box2D.JSDraw['DrawSolidCircle'] =
 }
 
 export type DrawableBox = Float32Array
+export type DrawableLine = Float32Array
 export interface DebugDrawBuffer {
   boxes: DrawableBox[]
+  lines: DrawableLine[]
 }
 export const debugDrawBuffer: DebugDrawBuffer = ({
-  boxes: []
+  boxes: [],
+  lines: []
 })
 export const flushDebugDrawBuffer = (): void => {
-  const { boxes } = debugDrawBuffer
+  const { boxes, lines } = debugDrawBuffer
   boxes.length = 0
+  lines.length = 0
 }
 
 const floatsPerVec2 = 2
@@ -63,6 +67,8 @@ const DrawPolygon: Box2D.JSDraw['DrawPolygon'] =
     const copy = quadAllocator.acquire()
     copy.set(new Float32Array(HEAPF32.buffer, vertices_p, vertexCount * floatsPerVec2))
     debugDrawBuffer.boxes.push(copy)
+  } else {
+    // iterate through all vertices and create line segments like how DrawSegment does
   }
 }
 
@@ -71,10 +77,16 @@ Box2D.JSDraw,
 Partial<Box2D.JSDraw>
 >(new JSDraw(), {
   DrawSegment: (vert1_p: number, vert2_p: number, color_p: number): void => {
-    const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
-    const vert1: Box2D.b2Vec2 = wrapPointer(vert1_p, b2Vec2)
-    const vert2: Box2D.b2Vec2 = wrapPointer(vert2_p, b2Vec2)
-
+    // const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
+    // const vert1: Box2D.b2Vec2 = wrapPointer(vert1_p, b2Vec2)
+    // const vert2: Box2D.b2Vec2 = wrapPointer(vert2_p, b2Vec2)
+    const copy = lineAllocator.acquire()
+    copy[0] = HEAPF32[vert1_p >> 2]
+    copy[1] = HEAPF32[vert1_p + 4 >> 2]
+    copy[2] = HEAPF32[vert2_p >> 2]
+    copy[3] = HEAPF32[vert2_p + 4 >> 2]
+    debugDrawBuffer.lines.push(copy)
+    // console.log(copy)
   },
   DrawPolygon,
   DrawSolidPolygon: DrawPolygon,
