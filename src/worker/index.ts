@@ -3,8 +3,8 @@ import { onContext } from './onContext'
 import type { FromMain, ReadyFromWorker } from '../protocol'
 import type { DebugDrawBuffer } from './debugDraw'
 import { debugDrawBuffer, flushDebugDrawBuffer } from './debugDraw'
-import { allocQuads, releaseQuads } from './quadAllocator'
-import { ensureQuadBufferFits } from './quadBufferAllocator'
+import { quadAllocator } from './floatArrayAllocator'
+import { growableQuadArray } from './growableTypedArray'
 
 self.onmessageerror = (event: MessageEvent) =>
   console.error('onmessageerror', event)
@@ -15,8 +15,8 @@ const { makeWorld } = await import('./world')
 
 const boxCount = 2
 const world = makeWorld(boxCount)
-allocQuads(boxCount)
-ensureQuadBufferFits(boxCount)
+quadAllocator.growN(boxCount)
+growableQuadArray.ensureLength(boxCount)
 
 const mainLoop: MainLoop = (intervalMs: number): void =>
   world.Step(intervalMs / 1000, 1, 1, 1)
@@ -27,7 +27,7 @@ const getDrawBuffer: GetDrawBuffer = (): DebugDrawBuffer => {
 }
 const flushDrawBuffer: FlushDrawBuffer = (): void => {
   flushDebugDrawBuffer()
-  releaseQuads()
+  quadAllocator.release()
 }
 
 self.onmessage = ({ data }: MessageEvent<FromMain>) => {
@@ -40,7 +40,8 @@ self.onmessage = ({ data }: MessageEvent<FromMain>) => {
       gl,
       mainLoop,
       getDrawBuffer,
-      flushDrawBuffer
+      flushDrawBuffer,
+      30
     )
   }
 }

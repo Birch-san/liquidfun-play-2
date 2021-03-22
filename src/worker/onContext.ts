@@ -1,4 +1,4 @@
-import { ensureQuadBufferFits, getQuadBufferSlice } from './quadBufferAllocator'
+import { growableQuadArray } from './growableTypedArray'
 import type { DebugDrawBuffer } from './debugDraw'
 import type { M3 } from './m3'
 import * as m3 from './m3'
@@ -19,7 +19,8 @@ export const onContext = (
   gl: WebGL2RenderingContext,
   mainLoop: MainLoop,
   getDrawBuffer: GetDrawBuffer,
-  flushDrawBuffer: FlushDrawBuffer
+  flushDrawBuffer: FlushDrawBuffer,
+  frameLimit: number
 ): void => {
   const compile = (type: GLenum, shaderStr: string): WebGLShader => {
     const shader: WebGLShader | null = gl.createShader(type)
@@ -101,8 +102,8 @@ export const onContext = (
     const coordFloats = 2
     const quadFloats = quadVertices * coordFloats
     const desiredQuadBufferLength = boxes.length * quadFloats
-    ensureQuadBufferFits(desiredQuadBufferLength)
-    const buffer = getQuadBufferSlice(desiredQuadBufferLength)
+    growableQuadArray.ensureLength(desiredQuadBufferLength)
+    const buffer = growableQuadArray.getSlice(desiredQuadBufferLength)
     let offset = 0
     for (const box of boxes) {
       buffer.set(box, offset)
@@ -142,9 +143,10 @@ export const onContext = (
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
     // gl.drawArrays(gl.TRIANGLES, 0, 3)
     gl.drawElements(gl.TRIANGLES, indexArray.length, gl.UNSIGNED_SHORT, 0)
+    // gl.drawArrays(gl.LINES, 0, )
   }
 
-  const minimumWaitMs = 1 / 60 * 1000
+  const minimumWaitMs = 1 / frameLimit * 1000
   let lastRender: number = self.performance.now()
 
   const render: FrameRequestCallback = (): void => {

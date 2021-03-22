@@ -1,4 +1,4 @@
-import { getQuad } from './quadAllocator'
+import { quadAllocator } from './floatArrayAllocator'
 
 const { box2D } = await import('./box2d')
 const {
@@ -60,7 +60,7 @@ const DrawPolygon: Box2D.JSDraw['DrawPolygon'] =
   // )
   if (vertexCount === 4) {
     // debugDrawBuffer.boxes.push(new Float32Array(HEAPF32.buffer, vertices_p, vertexCount * 2))
-    const copy = getQuad()
+    const copy = quadAllocator.acquire()
     copy.set(new Float32Array(HEAPF32.buffer, vertices_p, vertexCount * floatsPerVec2))
     debugDrawBuffer.boxes.push(copy)
   }
@@ -74,6 +74,7 @@ Partial<Box2D.JSDraw>
     const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
     const vert1: Box2D.b2Vec2 = wrapPointer(vert1_p, b2Vec2)
     const vert2: Box2D.b2Vec2 = wrapPointer(vert2_p, b2Vec2)
+
   },
   DrawPolygon,
   DrawSolidPolygon: DrawPolygon,
