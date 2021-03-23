@@ -97,28 +97,24 @@ export const onContext = (
     const drawBuffer = getDrawBuffer()
     const { boxes, lines } = drawBuffer
 
-    const quadVertices = 4
-
     growableQuadArray.ensureLength(boxes.length)
     const quadArray: Float32Array = growableQuadArray.getSlice(boxes.length)
     {
-      const coordFloats = 2
-      const quadFloats = quadVertices * coordFloats
       let offset = 0
       for (const box of boxes) {
         quadArray.set(box, offset)
-        offset += quadFloats
+        offset += growableQuadArray.elemSize
       }
     }
 
     const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, quadArray)
 
-    const quadOfTrisVertices = 6
+    const quadVertices = 4
     growableQuadIndexArray.ensureLength(boxes.length)
     const indexArray: Uint16Array = growableQuadIndexArray.getSlice(boxes.length)
     for (let boxIx = 0; boxIx < boxes.length; boxIx++) {
       const minVertexIx = boxIx * quadVertices
-      const indexOffset = boxIx * quadOfTrisVertices
+      const indexOffset = boxIx * growableQuadIndexArray.elemSize
       indexArray[indexOffset] = 0 + minVertexIx
       indexArray[indexOffset + 1] = 1 + minVertexIx
       indexArray[indexOffset + 2] = 2 + minVertexIx
@@ -131,13 +127,10 @@ export const onContext = (
     growableLineArray.ensureLength(lines.length)
     const lineArray: Float32Array = growableLineArray.getSlice(lines.length)
     {
-      const floatsPerVec2 = 2
-      const vec2PerLine = 2
-      const floatsPerLine = floatsPerVec2 * vec2PerLine
       let offset = 0
       for (const line of lines) {
         lineArray.set(line, offset)
-        offset += floatsPerLine
+        offset += growableLineArray.elemSize
       }
     }
     const lineBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, lineArray)
