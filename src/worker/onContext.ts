@@ -141,26 +141,28 @@ export const onContext = (
       }
     }
     const lineBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, lineArray)
-    const lineCount = lines.length
 
     flushDrawBuffer()
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
-
     const positionAttr = gl.getAttribLocation(program, 'a_position')
-    // https://webglfundamentals.org/webgl/lessons/webgl-2d-matrices.html
-    gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(positionAttr)
+    if (positionAttr === -1) {
+      throw new Error("Failed to find attribute 'a_position'")
+    }
 
     const matrixAttr = gl.getUniformLocation(program, 'u_matrix')
+    if (matrixAttr === -1) {
+      throw new Error("Failed to find attribute 'u_matrix'")
+    }
     gl.uniformMatrix3fv(matrixAttr, false, matrix)
 
     gl.clearColor(0.5, 0.5, 0.5, 0.9)
-    // gl.enable(gl.DEPTH_TEST)
     gl.clear(gl.COLOR_BUFFER_BIT)
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
-    // gl.drawArrays(gl.TRIANGLES, 0, 3)
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
+    gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(positionAttr)
     gl.drawElements(gl.TRIANGLES, indexArray.length, gl.UNSIGNED_SHORT, 0)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
 
@@ -168,6 +170,7 @@ export const onContext = (
     gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(positionAttr)
     gl.drawArrays(gl.LINES, 0, lineArray.length / 2)
+    gl.bindBuffer(gl.ARRAY_BUFFER, null)
   }
 
   const minimumWaitMs = 1 / frameLimit * 1000
