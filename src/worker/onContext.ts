@@ -1,5 +1,5 @@
-import { growableQuadArray, growableQuadIndexArray, growableLineArray } from './growableTypedArray'
-import type { DebugDrawBuffer } from './debugDraw'
+import { growableQuadIndexArray } from './growableTypedArray'
+import type { DrawBuffer } from './debugDraw'
 import type { M3 } from './m3'
 import * as m3 from './m3'
 
@@ -12,7 +12,7 @@ const fragmentShaderText: string = await fragmentShaderResponse.text()
 const pixelsPerMeter = 32
 
 export type MainLoop = (intervalMs: number) => void
-export type GetDrawBuffer = () => DebugDrawBuffer
+export type GetDrawBuffer = () => DrawBuffer
 export type FlushDrawBuffer = () => void
 
 export const onContext = (
@@ -92,22 +92,10 @@ export const onContext = (
   const matrix: M3 = calculateMatrix()
 
   const draw = (): void => {
-    // this flush beforehand is defensive, but I don't mind because it's cheap
-    flushDrawBuffer()
-    const drawBuffer = getDrawBuffer()
-    const { boxes, lines } = drawBuffer
+    const drawBuffer: DrawBuffer = getDrawBuffer()
+    const { boxes, lineVertices } = drawBuffer
 
-    growableQuadArray.ensureLength(boxes.length)
-    const quadArray: Float32Array = growableQuadArray.getSlice(boxes.length)
-    {
-      let offset = 0
-      for (const box of boxes) {
-        quadArray.set(box, offset)
-        offset += growableQuadArray.elemSize
-      }
-    }
-
-    const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, quadArray)
+    const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, boxes.getView())
 
     const quadVertices = 4
     growableQuadIndexArray.ensureLength(boxes.length)
@@ -124,18 +112,7 @@ export const onContext = (
     }
     const indexBuffer: WebGLBuffer = initBuffer(gl.ELEMENT_ARRAY_BUFFER, indexArray)
 
-    growableLineArray.ensureLength(lines.length)
-    const lineArray: Float32Array = growableLineArray.getSlice(lines.length)
-    {
-      let offset = 0
-      for (const line of lines) {
-        lineArray.set(line, offset)
-        offset += growableLineArray.elemSize
-      }
-    }
-    const lineBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, lineArray)
-
-    flushDrawBuffer()
+    const lineBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, lineVertices.getView())
 
     const positionAttr = gl.getAttribLocation(program, 'a_position')
     if (positionAttr === -1) {
@@ -162,8 +139,10 @@ export const onContext = (
     gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
     gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(positionAttr)
-    gl.drawArrays(gl.LINES, 0, lineArray.length / 2)
+    gl.drawArrays(gl.LINES, 0, lineVertices.length)
     gl.bindBuffer(gl.ARRAY_BUFFER, null)
+
+    flushDrawBuffer()
   }
 
   const minimumWaitMs = 1 / frameLimit * 1000

@@ -37,16 +37,6 @@ class GrowableTypedArray<T extends TypedArray> {
   }
 }
 
-class GrowableQuadArray extends GrowableTypedArray<Float32Array> {
-  constructor () {
-    const quadVertices = 4
-    const floatsPerVec2 = 2
-    const floatsPerQuad = quadVertices * floatsPerVec2
-    super(Float32Array, floatsPerQuad)
-  }
-}
-export const growableQuadArray = new GrowableQuadArray()
-
 class GrowableQuadIndexArray extends GrowableTypedArray<Uint16Array> {
   constructor () {
     const shortsPerQuad = 6
@@ -54,13 +44,3 @@ class GrowableQuadIndexArray extends GrowableTypedArray<Uint16Array> {
   }
 }
 export const growableQuadIndexArray = new GrowableQuadIndexArray()
-
-class GrowableLineArray extends GrowableTypedArray<Float32Array> {
-  constructor () {
-    const floatsPerVec2 = 2
-    const vec2sPerLine = 2
-    const floatsPerLine = floatsPerVec2 * vec2sPerLine
-    super(Float32Array, floatsPerLine)
-  }
-}
-export const growableLineArray = new GrowableLineArray()
