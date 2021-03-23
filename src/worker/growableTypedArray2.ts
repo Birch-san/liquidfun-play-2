@@ -46,7 +46,7 @@ export class GrowableTypedArray2<T extends TypedArray> {
   }
 }
 
-export class GrowableQuadArray2 extends GrowableTypedArray2<Float32Array> {
+export class GrowableQuadArray extends GrowableTypedArray2<Float32Array> {
   constructor () {
     const quadVertices = 4
     const floatsPerVec2 = 2
@@ -54,12 +54,12 @@ export class GrowableQuadArray2 extends GrowableTypedArray2<Float32Array> {
     super(Float32Array, floatsPerQuad)
   }
 }
-export const growableQuadArray2 = new GrowableQuadArray2()
+export const growableQuadArray = new GrowableQuadArray()
 
-export class GrowableVec2Array2 extends GrowableTypedArray2<Float32Array> {
+export class GrowableVec2Array extends GrowableTypedArray2<Float32Array> {
   constructor () {
     const floatsPerVec2 = 2
     super(Float32Array, floatsPerVec2)
   }
 }
-export const growableVec2Array2 = new GrowableVec2Array2()
+export const growableVec2Array = new GrowableVec2Array()

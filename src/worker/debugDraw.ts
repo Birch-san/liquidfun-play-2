@@ -1,4 +1,4 @@
-import { GrowableQuadArray2, GrowableVec2Array2, growableQuadArray2, growableVec2Array2 } from './growableTypedArray2'
+import { GrowableQuadArray, GrowableVec2Array, growableQuadArray, growableVec2Array } from './growableTypedArray2'
 
 const { box2D } = await import('./box2d')
 const {
@@ -25,12 +25,12 @@ const DrawSolidCircle: Box2D.JSDraw['DrawSolidCircle'] =
 }
 
 export interface DrawBuffer {
-  boxes: GrowableQuadArray2
-  lineVertices: GrowableVec2Array2
+  boxes: GrowableQuadArray
+  lineVertices: GrowableVec2Array
 }
 export const drawBuffer: DrawBuffer = {
-  boxes: growableQuadArray2,
-  lineVertices: growableVec2Array2
+  boxes: growableQuadArray,
+  lineVertices: growableVec2Array
 }
 export const flushDrawBuffer = (): void => {
   const { boxes, lineVertices } = drawBuffer
