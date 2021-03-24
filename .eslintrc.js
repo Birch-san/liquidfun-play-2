@@ -17,7 +17,8 @@ module.exports = {
   rules: {
     'eol-last': 'off',
     'new-cap': 'off',
-    '@typescript-eslint/naming-convention': 'off'
+    '@typescript-eslint/naming-convention': 'off',
+    'no-void': ['error', { allowAsStatement: true }]
   },
   overrides: [
     {

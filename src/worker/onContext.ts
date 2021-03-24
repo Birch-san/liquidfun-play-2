@@ -11,16 +11,17 @@ const fragmentShaderText: string = await fragmentShaderResponse.text()
 
 const pixelsPerMeter = 32
 
+export type ShouldRun = (intervalMs: number) => boolean
 export type MainLoop = (intervalMs: number) => void
 export type GetDrawBuffer = () => DrawBuffer
 export type FlushDrawBuffer = () => void
 
 export const onContext = (
   gl: WebGL2RenderingContext,
+  shouldRun: ShouldRun,
   mainLoop: MainLoop,
   getDrawBuffer: GetDrawBuffer,
-  flushDrawBuffer: FlushDrawBuffer,
-  frameLimit: number
+  flushDrawBuffer: FlushDrawBuffer
 ): void => {
   const compile = (type: GLenum, shaderStr: string): WebGLShader => {
     const shader: WebGLShader | null = gl.createShader(type)
@@ -145,13 +146,12 @@ export const onContext = (
     flushDrawBuffer()
   }
 
-  const minimumWaitMs = 1 / frameLimit * 1000
   let lastRender: number = self.performance.now()
 
   const render: FrameRequestCallback = (): void => {
     const now: number = self.performance.now()
     const intervalMs: number = now - lastRender
-    if (intervalMs > minimumWaitMs) {
+    if (shouldRun(intervalMs)) {
       mainLoop(intervalMs)
       lastRender = now
       draw()
