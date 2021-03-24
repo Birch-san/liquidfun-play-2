@@ -1,6 +1,6 @@
-import type { DestroyDemo } from './index'
+import type { DestroyDemo } from '../index'
 
-const { box2D } = await import('./box2d')
+const { box2D } = await import('../box2d')
 
 export interface RampDemo {
   world: Box2D.b2World

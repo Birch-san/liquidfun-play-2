@@ -25,7 +25,7 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
       break
     case Demo.Ramp: {
       const boxCount = 2
-      const { makeRampDemo } = await import('./rampDemo');
+      const { makeRampDemo } = await import('./demo/ramp');
       ({ world, destroyDemo } = makeRampDemo(debugDraw, boxCount))
       growableQuadIndexArray.ensureLength(boxCount)
       break
