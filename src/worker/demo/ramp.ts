@@ -38,7 +38,7 @@ export const makeRampDemo = (
     const shape = new b2EdgeShape()
     shape.SetTwoSided(from, to)
     ground.CreateFixture(shape, 0)
-    // destroy shape?
+    destroy(shape)
   }
   // floor which boxes rest on
   {
@@ -47,7 +47,7 @@ export const makeRampDemo = (
     const shape = new b2EdgeShape()
     shape.SetTwoSided(from, to)
     ground.CreateFixture(shape, 0)
-    // destroy shape?
+    destroy(shape)
   }
   destroy(bd_ground)
   destroy(from)
@@ -82,7 +82,7 @@ export const makeRampDemo = (
   destroy(bd)
   destroy(zero)
   destroy(temp)
-  destroy(square) // or maybe later?
+  destroy(square)
 
   return {
     world,
