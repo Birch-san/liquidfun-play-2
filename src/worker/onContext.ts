@@ -1,4 +1,5 @@
-import { growableQuadIndexArray } from './growableTypedArray'
+import { growableQuadIndexArray2 } from './growableTypedArray2'
+// import { growableQuadIndexArray } from './growableTypedArray'
 import type { DrawBuffer } from './debugDraw'
 import type { M3 } from './m3'
 import * as m3 from './m3'
@@ -99,19 +100,19 @@ export const onContext = (
     const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, boxes.getView())
 
     const quadVertices = 4
-    growableQuadIndexArray.ensureLength(boxes.length)
-    const indexArray: Uint16Array = growableQuadIndexArray.getSlice(boxes.length)
-    for (let boxIx = 0; boxIx < boxes.length; boxIx++) {
-      const minVertexIx = boxIx * quadVertices
-      const indexOffset = boxIx * growableQuadIndexArray.elemSize
-      indexArray[indexOffset] = 0 + minVertexIx
-      indexArray[indexOffset + 1] = 1 + minVertexIx
-      indexArray[indexOffset + 2] = 2 + minVertexIx
-      indexArray[indexOffset + 3] = 0 + minVertexIx
-      indexArray[indexOffset + 4] = 2 + minVertexIx
-      indexArray[indexOffset + 5] = 3 + minVertexIx
+    growableQuadIndexArray2.ensureFits(boxes.length)
+    for (let quadIx = 0; quadIx < boxes.length; quadIx++) {
+      const minVertexIx = quadIx * quadVertices
+      growableQuadIndexArray2.emplaceWithoutRealloc(
+        0 + minVertexIx,
+        1 + minVertexIx,
+        2 + minVertexIx,
+        0 + minVertexIx,
+        2 + minVertexIx,
+        3 + minVertexIx
+      )
     }
-    const indexBuffer: WebGLBuffer = initBuffer(gl.ELEMENT_ARRAY_BUFFER, indexArray)
+    const indexBuffer: WebGLBuffer = initBuffer(gl.ELEMENT_ARRAY_BUFFER, growableQuadIndexArray2.getView())
 
     const lineBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, lineVertices.getView())
 
@@ -134,7 +135,7 @@ export const onContext = (
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
     gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(positionAttr)
-    gl.drawElements(gl.TRIANGLES, indexArray.length, gl.UNSIGNED_SHORT, 0)
+    gl.drawElements(gl.TRIANGLES, growableQuadIndexArray2.length * growableQuadIndexArray2.elemSize, gl.UNSIGNED_SHORT, 0)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
 
     gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
@@ -144,6 +145,7 @@ export const onContext = (
     gl.bindBuffer(gl.ARRAY_BUFFER, null)
 
     flushDrawBuffer()
+    growableQuadIndexArray2.length = 0
   }
 
   let lastRender: number = self.performance.now()

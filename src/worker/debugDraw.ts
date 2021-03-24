@@ -73,8 +73,9 @@ Partial<Box2D.JSDraw>
     // these pushes work, but avoiding in case the new Float32Array costs me a heap allocation
     // drawBuffer.lineVertices.push(new Float32Array(HEAPF32.buffer, vert1_p, floatsPerVec2))
     // drawBuffer.lineVertices.push(new Float32Array(HEAPF32.buffer, vert2_p, floatsPerVec2))
-    drawBuffer.lineVertices.emplace(HEAPF32[vert1_p >> 2], HEAPF32[vert1_p + 4 >> 2])
-    drawBuffer.lineVertices.emplace(HEAPF32[vert2_p >> 2], HEAPF32[vert2_p + 4 >> 2])
+    drawBuffer.lineVertices.ensureFits(drawBuffer.lineVertices.length + 2)
+    drawBuffer.lineVertices.emplaceWithoutRealloc(HEAPF32[vert1_p >> 2], HEAPF32[vert1_p + 4 >> 2])
+    drawBuffer.lineVertices.emplaceWithoutRealloc(HEAPF32[vert2_p >> 2], HEAPF32[vert2_p + 4 >> 2])
   },
   DrawPolygon,
   DrawSolidPolygon: DrawPolygon,

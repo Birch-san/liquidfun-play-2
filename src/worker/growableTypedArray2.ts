@@ -14,13 +14,14 @@ interface ArrayBufferViewCtor<T extends TypedArray> {
 }
 
 export class GrowableTypedArray2<T extends TypedArray> {
+  private static readonly incrementSize = 2 ** 6
   protected buffer: T
   public length = 0
   constructor (
     private readonly ctor: ArrayBufferViewCtor<T>,
     public readonly elemSize: number
   ) {
-    this.buffer = new ctor()
+    this.buffer = new ctor(GrowableTypedArray2.incrementSize)
   }
 
   push (elem: T): void {
@@ -33,8 +34,7 @@ export class GrowableTypedArray2<T extends TypedArray> {
   ensureFits (desiredElems: number): void {
     const desiredLength = desiredElems * this.elemSize
     if (this.buffer.length <= desiredLength) {
-      const incrementSize = 2 ** 6
-      const newLength = Math.ceil(desiredLength / incrementSize) * incrementSize
+      const newLength = Math.ceil(desiredLength / GrowableTypedArray2.incrementSize) * GrowableTypedArray2.incrementSize
       const newBuffer = new this.ctor(newLength)
       newBuffer.set(this.buffer)
       this.buffer = newBuffer
@@ -64,7 +64,7 @@ export class GrowableQuadArray extends GrowableTypedArray2<Float32Array> {
     x3: number,
     y3: number
   ): void {
-    const desiredElems = this.length + 4
+    const desiredElems = this.length + 1
     this.ensureFits(desiredElems)
     this.buffer[this.length * this.elemSize] = x0
     this.buffer[this.length * this.elemSize + 1] = y0
@@ -74,10 +74,35 @@ export class GrowableQuadArray extends GrowableTypedArray2<Float32Array> {
     this.buffer[this.length * this.elemSize + 5] = y2
     this.buffer[this.length * this.elemSize + 6] = x3
     this.buffer[this.length * this.elemSize + 7] = y3
-    this.length += 4
+    this.length++
   }
 }
 export const growableQuadArray = new GrowableQuadArray()
+
+class GrowableQuadIndexArray2 extends GrowableTypedArray2<Uint16Array> {
+  constructor () {
+    const shortsPerQuad = 6
+    super(Uint16Array, shortsPerQuad)
+  }
+
+  emplaceWithoutRealloc (
+    ix0: number,
+    ix1: number,
+    ix2: number,
+    ix3: number,
+    ix4: number,
+    ix5: number
+  ): void {
+    this.buffer[this.length * this.elemSize] = ix0
+    this.buffer[this.length * this.elemSize + 1] = ix1
+    this.buffer[this.length * this.elemSize + 2] = ix2
+    this.buffer[this.length * this.elemSize + 3] = ix3
+    this.buffer[this.length * this.elemSize + 4] = ix4
+    this.buffer[this.length * this.elemSize + 5] = ix5
+    this.length++
+  }
+}
+export const growableQuadIndexArray2 = new GrowableQuadIndexArray2()
 
 export class GrowableVec2Array extends GrowableTypedArray2<Float32Array> {
   constructor () {
@@ -85,9 +110,7 @@ export class GrowableVec2Array extends GrowableTypedArray2<Float32Array> {
     super(Float32Array, floatsPerVec2)
   }
 
-  emplace (x: number, y: number): void {
-    const desiredElems = this.length + 1
-    this.ensureFits(desiredElems)
+  emplaceWithoutRealloc (x: number, y: number): void {
     this.buffer[this.length * this.elemSize] = x
     this.buffer[this.length * this.elemSize + 1] = y
     this.length++
