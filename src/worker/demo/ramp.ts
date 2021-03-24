@@ -1,16 +1,11 @@
-import type { DestroyDemo } from '../index'
+import type { DemoResources } from './index'
 
 const { box2D } = await import('../box2d')
-
-export interface RampDemo {
-  world: Box2D.b2World
-  destroyDemo: DestroyDemo
-}
 
 export const makeRampDemo = (
   debugDraw: Box2D.b2Draw,
   boxCount: number
-): RampDemo => {
+): DemoResources => {
   const {
     b2_dynamicBody,
     b2BodyDef,
@@ -86,7 +81,7 @@ export const makeRampDemo = (
 
   return {
     world,
-    destroyDemo: () => {
+    destroyDemo: (): void => {
       for (let body = world.GetBodyList(); getPointer(body) !== getPointer(NULL); body = body.GetNext()) {
         world.DestroyBody(body)
       }

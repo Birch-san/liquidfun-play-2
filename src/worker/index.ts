@@ -4,13 +4,12 @@ import { Demo } from '../protocol'
 import type { FromMain, ReadyFromWorker } from '../protocol'
 import { DrawBuffer, drawBuffer, flushDrawBuffer } from './debugDraw'
 import { growableQuadIndexArray } from './growableTypedArray'
+import type { DestroyDemo } from './demo'
 
 self.onmessageerror = (event: MessageEvent) =>
   console.error('onmessageerror', event)
 self.onerror = (event: ErrorEvent) =>
   console.error('onerror', event)
-
-export type DestroyDemo = () => void
 
 let world: Box2D.b2World | undefined
 let destroyDemo: DestroyDemo | undefined
@@ -31,6 +30,8 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
       break
     }
     case Demo.WaveMachine: {
+      const { makeWaveMachineDemo } = await import('./demo/waveMachine');
+      ({ world, destroyDemo } = makeWaveMachineDemo(debugDraw))
       break
     }
     default:
