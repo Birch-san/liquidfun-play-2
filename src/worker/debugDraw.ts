@@ -38,28 +38,24 @@ export const flushDrawBuffer = (): void => {
   lineVertices.length = 0
 }
 
-const floatsPerVec2 = 2
-
 const DrawPolygon: Box2D.JSDraw['DrawPolygon'] =
 (vertices_p: number, vertexCount: number, color_p: number): void => {
   // const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
-  // TODO: reifyArray does a bunch of allocations, may not be suited for perf-sensitive tasks
-  // const vertices: Box2D.b2Vec2[] = reifyArray(vertices_p, vertexCount, sizeOfB2Vec, b2Vec2)
-  // console.log(vertices.map(({ x, y }: Box2D.b2Vec2) => `[${x}, ${y}]`).join(', '))
-  // [-0.5, 169.5], [0.5, 169.5], [0.5, 170.5], [-0.5, 170.5]
-  // debugDrawBuffer.boxes.push(new Float32Array())
-  // console.log(
-  //   HEAPF32[vertices_p >> 2],
-  //   HEAPF32[vertices_p + 4 >> 2],
-  //   HEAPF32[vertices_p + 8 >> 2],
-  //   HEAPF32[vertices_p + 12 >> 2],
-  //   HEAPF32[vertices_p + 16 >> 2],
-  //   HEAPF32[vertices_p + 20 >> 2],
-  //   HEAPF32[vertices_p + 24 >> 2],
-  //   HEAPF32[vertices_p + 28 >> 2]
-  // )
+  // avoiding reifyArray because it does a bunch of allocations
+  // const vertices: Box2D.b2Vec2[] = reifyArray(vertices_p, vertexCount, sizeOfB2Vec2, b2Vec2)
   if (vertexCount === 4) {
-    drawBuffer.boxes.push(new Float32Array(HEAPF32.buffer, vertices_p, vertexCount * floatsPerVec2))
+    // this push works, but avoiding in case the new Float32Array costs me a heap allocation
+    // drawBuffer.boxes.push(new Float32Array(HEAPF32.buffer, vertices_p, vertexCount * floatsPerVec2))
+    drawBuffer.boxes.emplace(
+      HEAPF32[vertices_p >> 2],
+      HEAPF32[vertices_p + 4 >> 2],
+      HEAPF32[vertices_p + 8 >> 2],
+      HEAPF32[vertices_p + 12 >> 2],
+      HEAPF32[vertices_p + 16 >> 2],
+      HEAPF32[vertices_p + 20 >> 2],
+      HEAPF32[vertices_p + 24 >> 2],
+      HEAPF32[vertices_p + 28 >> 2]
+    )
   } else {
     // iterate through all vertices and create line segments like how DrawSegment does
   }
@@ -73,8 +69,12 @@ Partial<Box2D.JSDraw>
     // const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
     // const vert1: Box2D.b2Vec2 = wrapPointer(vert1_p, b2Vec2)
     // const vert2: Box2D.b2Vec2 = wrapPointer(vert2_p, b2Vec2)
-    drawBuffer.lineVertices.push(new Float32Array(HEAPF32.buffer, vert1_p, floatsPerVec2))
-    drawBuffer.lineVertices.push(new Float32Array(HEAPF32.buffer, vert2_p, floatsPerVec2))
+
+    // these pushes work, but avoiding in case the new Float32Array costs me a heap allocation
+    // drawBuffer.lineVertices.push(new Float32Array(HEAPF32.buffer, vert1_p, floatsPerVec2))
+    // drawBuffer.lineVertices.push(new Float32Array(HEAPF32.buffer, vert2_p, floatsPerVec2))
+    drawBuffer.lineVertices.emplace(HEAPF32[vert1_p >> 2], HEAPF32[vert1_p + 4 >> 2])
+    drawBuffer.lineVertices.emplace(HEAPF32[vert2_p >> 2], HEAPF32[vert2_p + 4 >> 2])
   },
   DrawPolygon,
   DrawSolidPolygon: DrawPolygon,

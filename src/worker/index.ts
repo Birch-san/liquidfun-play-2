@@ -23,7 +23,7 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
       world = undefined
       break
     case Demo.Ramp: {
-      const boxCount = 2
+      const boxCount = 100
       const { makeRampDemo } = await import('./demo/ramp');
       ({ world, destroyDemo } = makeRampDemo(debugDraw, boxCount))
       growableQuadIndexArray.ensureLength(boxCount)
@@ -39,7 +39,7 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
   }
 }
 
-const frameLimit = 30
+const frameLimit = 90
 const minimumWaitMs = 1 / frameLimit * 1000
 const shouldRun: ShouldRun = (intervalMs: number): boolean =>
   intervalMs > minimumWaitMs && world !== undefined
