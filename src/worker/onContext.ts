@@ -1,5 +1,4 @@
-import { growableQuadIndexArray2 } from './growableTypedArray2'
-// import { growableQuadIndexArray } from './growableTypedArray'
+import { growableQuadIndexArray } from './growableTypedArray'
 import type { DrawBuffer } from './debugDraw'
 import type { M3 } from './m3'
 import * as m3 from './m3'
@@ -100,10 +99,10 @@ export const onContext = (
     const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, boxes.getView())
 
     const quadVertices = 4
-    growableQuadIndexArray2.ensureFits(boxes.length)
+    growableQuadIndexArray.ensureFits(boxes.length)
     for (let quadIx = 0; quadIx < boxes.length; quadIx++) {
       const minVertexIx = quadIx * quadVertices
-      growableQuadIndexArray2.emplaceWithoutRealloc(
+      growableQuadIndexArray.emplaceWithoutRealloc(
         0 + minVertexIx,
         1 + minVertexIx,
         2 + minVertexIx,
@@ -112,7 +111,7 @@ export const onContext = (
         3 + minVertexIx
       )
     }
-    const indexBuffer: WebGLBuffer = initBuffer(gl.ELEMENT_ARRAY_BUFFER, growableQuadIndexArray2.getView())
+    const indexBuffer: WebGLBuffer = initBuffer(gl.ELEMENT_ARRAY_BUFFER, growableQuadIndexArray.getView())
 
     const lineBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, lineVertices.getView())
 
@@ -135,7 +134,7 @@ export const onContext = (
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
     gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(positionAttr)
-    gl.drawElements(gl.TRIANGLES, growableQuadIndexArray2.length * growableQuadIndexArray2.elemSize, gl.UNSIGNED_SHORT, 0)
+    gl.drawElements(gl.TRIANGLES, growableQuadIndexArray.length * growableQuadIndexArray.elemSize, gl.UNSIGNED_SHORT, 0)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
 
     gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
@@ -145,7 +144,7 @@ export const onContext = (
     gl.bindBuffer(gl.ARRAY_BUFFER, null)
 
     flushDrawBuffer()
-    growableQuadIndexArray2.length = 0
+    growableQuadIndexArray.length = 0
   }
 
   let lastRender: number = self.performance.now()

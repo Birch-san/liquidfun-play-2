@@ -1,4 +1,4 @@
-import { GrowableQuadArray, GrowableVec2Array, growableQuadArray, growableVec2Array } from './growableTypedArray2'
+import { GrowableQuadArray, GrowableVec2Array, growableQuadArray, growableVec2Array } from './growableTypedArray'
 
 const { box2D } = await import('./box2d')
 const {
