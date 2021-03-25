@@ -130,18 +130,23 @@ export const onContext = (
     gl.clear(gl.COLOR_BUFFER_BIT)
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
-    gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(positionAttr)
-    gl.drawElements(gl.TRIANGLES, growableQuadIndexArray.length * growableQuadIndexArray.elemSize, gl.UNSIGNED_SHORT, 0)
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
+    if (growableQuadIndexArray.length > 0) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
+      gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
+      gl.enableVertexAttribArray(positionAttr)
+      gl.drawElements(gl.TRIANGLES, growableQuadIndexArray.length * growableQuadIndexArray.elemSize, gl.UNSIGNED_SHORT, 0)
+      gl.bindBuffer(gl.ARRAY_BUFFER, null)
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
+    }
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
-    gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(positionAttr)
-    gl.drawArrays(gl.LINES, 0, lineVertices.length)
-    gl.bindBuffer(gl.ARRAY_BUFFER, null)
+    if (lineVertices.length > 0) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
+      gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
+      gl.enableVertexAttribArray(positionAttr)
+      gl.drawArrays(gl.LINES, 0, lineVertices.length)
+      gl.bindBuffer(gl.ARRAY_BUFFER, null)
+    }
 
     flushDrawBuffer()
     growableQuadIndexArray.length = 0
