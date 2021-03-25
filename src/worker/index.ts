@@ -10,15 +10,20 @@ self.onmessageerror = (event: MessageEvent) =>
 self.onerror = (event: ErrorEvent) =>
   console.error('onerror', event)
 
+type ClearCanvas = () => void
+
 let world: Box2D.b2World | undefined
 let destroyDemo: DestroyDemo | undefined
+let clearCanvas: ClearCanvas | undefined
 
 const { debugDraw } = await import('./debugDraw')
 
 const switchDemo = async (proposedDemo: Demo): Promise<void> => {
+  destroyDemo?.()
+  destroyDemo = undefined
+  clearCanvas?.()
   switch (proposedDemo) {
     case Demo.None:
-      destroyDemo?.()
       world = undefined
       break
     case Demo.Ramp: {
@@ -57,6 +62,7 @@ self.onmessage = ({ data }: MessageEvent<FromMain>) => {
       if (gl === null) {
         throw new Error('Failed to create WebGL2 rendering context')
       }
+      clearCanvas = () => gl.clear(gl.COLOR_BUFFER_BIT)
       onContext(
         gl,
         shouldRun,

@@ -14,7 +14,7 @@ interface ArrayBufferViewCtor<T extends TypedArray> {
 }
 
 export class GrowableTypedArray<T extends TypedArray> {
-  private static readonly incrementSize = 2 ** 6
+  private static readonly incrementSize = 2 ** 10
   protected buffer: T
   public length = 0
   constructor (
