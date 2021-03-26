@@ -1,7 +1,6 @@
 import { growableQuadIndexArray } from './growableTypedArray'
 import type { DrawBuffer } from './debugDraw'
-import type { M3 } from './m3'
-import * as m3 from './m3'
+import { mat3 } from 'gl-matrix'
 
 const vertexShaderResponse: Response = await fetch(new URL('../../shader.vert', import.meta.url).toString())
 const vertexShaderText: string = await vertexShaderResponse.text()
@@ -9,19 +8,23 @@ const vertexShaderText: string = await vertexShaderResponse.text()
 const fragmentShaderResponse: Response = await fetch(new URL('../../shader.frag', import.meta.url).toString())
 const fragmentShaderText: string = await fragmentShaderResponse.text()
 
-const pixelsPerMeter = 32
+export interface Camera {
+  pixelsPerMeter: number
+}
 
 export type ShouldRun = (intervalMs: number) => boolean
 export type MainLoop = (intervalMs: number) => void
 export type GetDrawBuffer = () => DrawBuffer
 export type FlushDrawBuffer = () => void
+export type GetCamera = () => Camera
 
 export const onContext = (
   gl: WebGL2RenderingContext,
   shouldRun: ShouldRun,
   mainLoop: MainLoop,
   getDrawBuffer: GetDrawBuffer,
-  flushDrawBuffer: FlushDrawBuffer
+  flushDrawBuffer: FlushDrawBuffer,
+  getCamera: GetCamera
 ): void => {
   const compile = (type: GLenum, shaderStr: string): WebGLShader => {
     const shader: WebGLShader | null = gl.createShader(type)
@@ -75,22 +78,22 @@ export const onContext = (
     return buffer
   }
 
-  const calculateMatrix = (): M3 => {
-    const { translation, scaling, multiply } = m3
-    // Compute the matrices
-    const translationMatrix = translation(
-      -gl.canvas.width / 2 / pixelsPerMeter,
-      -gl.canvas.height / 2 / pixelsPerMeter
-    )
-    const scaleMatrix = scaling(
+  const { pixelsPerMeter }: Camera = getCamera()
+
+  const calculateMatrix = (): mat3 => {
+    const { create, translate, scale } = mat3
+    const mat: mat3 = create()
+    translate(mat, mat, [
+      -1,
+      1
+    ])
+    scale(mat, mat, [
       1 / (gl.canvas.width / 2 / pixelsPerMeter),
       -1 / (gl.canvas.height / 2 / pixelsPerMeter)
-    )
-
-    // Multiply the matrices.
-    return multiply(scaleMatrix, translationMatrix)
+    ])
+    return mat
   }
-  const matrix: M3 = calculateMatrix()
+  const matrix: mat3 = calculateMatrix()
 
   const draw = (): void => {
     const drawBuffer: DrawBuffer = getDrawBuffer()

@@ -10,7 +10,7 @@
   const width = 800
   const height = 700
 
-  let demo: Demo = Demo.WaveMachine
+  let demo: Demo = Demo.Ramp
   const onChangeDemo = (event: Event): void => {
     event.stopPropagation()
     changeDemo?.(demo)

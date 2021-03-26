@@ -1,3 +1,4 @@
+import type { Camera } from '../onContext'
 import type { DemoResources } from './index'
 
 const { box2D } = await import('../box2d')
@@ -98,6 +99,10 @@ export const makeWaveMachineDemo = (
 
   let timeElapsedSecs = 0
 
+  const camera: Camera = {
+    pixelsPerMeter: 32
+  }
+
   return {
     world,
     worldStep: (intervalMs: number): void => {
@@ -106,6 +111,7 @@ export const makeWaveMachineDemo = (
       joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedSecs) * Math.PI)
       world.Step(intervalSecs, 1, 1, 1)
     },
+    getCamera: (): Camera => camera,
     destroyDemo: (): void => {
       for (let body = world.GetBodyList(); getPointer(body) !== getPointer(NULL); body = body.GetNext()) {
         world.DestroyBody(body)

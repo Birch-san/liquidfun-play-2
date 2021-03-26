@@ -1,4 +1,4 @@
-import type { GetDrawBuffer, MainLoop, ShouldRun } from './onContext'
+import type { Camera, GetCamera, GetDrawBuffer, MainLoop, ShouldRun } from './onContext'
 import { onContext } from './onContext'
 import { Demo } from '../protocol'
 import type { FromMain, ReadyFromWorker } from '../protocol'
@@ -12,10 +12,16 @@ self.onerror = (event: ErrorEvent) =>
 
 type ClearCanvas = () => void
 
+const fallbackCamera: Camera = {
+  pixelsPerMeter: 32
+}
+const fallbackGetCamera: GetCamera = () => fallbackCamera
+
 let world: Box2D.b2World | undefined
 let destroyDemo: DestroyDemo | undefined
 let worldStep: WorldStep | undefined
 let clearCanvas: ClearCanvas | undefined
+let getCamera: GetCamera = fallbackGetCamera
 
 const { debugDraw } = await import('./debugDraw')
 
@@ -23,6 +29,7 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
   destroyDemo?.()
   destroyDemo = undefined
   worldStep = undefined
+  getCamera = fallbackGetCamera
   clearCanvas?.()
   switch (proposedDemo) {
     case Demo.None:
@@ -31,12 +38,12 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
     case Demo.Ramp: {
       const boxCount = 2
       const { makeRampDemo } = await import('./demo/ramp');
-      ({ world, destroyDemo, worldStep } = makeRampDemo(debugDraw, boxCount))
+      ({ world, destroyDemo, worldStep, getCamera } = makeRampDemo(debugDraw, boxCount))
       break
     }
     case Demo.WaveMachine: {
       const { makeWaveMachineDemo } = await import('./demo/waveMachine');
-      ({ world, destroyDemo, worldStep } = makeWaveMachineDemo(debugDraw))
+      ({ world, destroyDemo, worldStep, getCamera } = makeWaveMachineDemo(debugDraw))
       break
     }
     default:
@@ -44,7 +51,7 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
   }
 }
 
-const frameLimit = 90
+const frameLimit = 30
 const minimumWaitMs = 1 / frameLimit * 1000
 const shouldRun: ShouldRun = (intervalMs: number): boolean =>
   intervalMs > minimumWaitMs && world !== undefined
@@ -70,7 +77,8 @@ self.onmessage = ({ data }: MessageEvent<FromMain>) => {
         shouldRun,
         mainLoop,
         getDrawBuffer,
-        flushDrawBuffer
+        flushDrawBuffer,
+        getCamera
       )
       break
     }

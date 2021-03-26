@@ -1,3 +1,4 @@
+import type { Camera } from '../onContext'
 import type { DemoResources } from './index'
 
 const { box2D } = await import('../box2d')
@@ -79,10 +80,15 @@ export const makeRampDemo = (
   destroy(temp)
   destroy(square)
 
+  const camera: Camera = {
+    pixelsPerMeter: 32
+  }
+
   return {
     world,
     worldStep: (intervalMs: number): void =>
       world.Step(intervalMs / 1000, 1, 1),
+    getCamera: (): Camera => camera,
     destroyDemo: (): void => {
       for (let body = world.GetBodyList(); getPointer(body) !== getPointer(NULL); body = body.GetNext()) {
         world.DestroyBody(body)
