@@ -81,6 +81,8 @@ export const makeRampDemo = (
 
   return {
     world,
+    worldStep: (intervalMs: number): void =>
+      world.Step(intervalMs / 1000, 1, 1),
     destroyDemo: (): void => {
       for (let body = world.GetBodyList(); getPointer(body) !== getPointer(NULL); body = body.GetNext()) {
         world.DestroyBody(body)

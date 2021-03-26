@@ -3,7 +3,7 @@ import { onContext } from './onContext'
 import { Demo } from '../protocol'
 import type { FromMain, ReadyFromWorker } from '../protocol'
 import { DrawBuffer, drawBuffer, flushDrawBuffer } from './debugDraw'
-import type { DestroyDemo } from './demo'
+import type { DestroyDemo, WorldStep } from './demo'
 
 self.onmessageerror = (event: MessageEvent) =>
   console.error('onmessageerror', event)
@@ -14,6 +14,7 @@ type ClearCanvas = () => void
 
 let world: Box2D.b2World | undefined
 let destroyDemo: DestroyDemo | undefined
+let worldStep: WorldStep | undefined
 let clearCanvas: ClearCanvas | undefined
 
 const { debugDraw } = await import('./debugDraw')
@@ -21,6 +22,7 @@ const { debugDraw } = await import('./debugDraw')
 const switchDemo = async (proposedDemo: Demo): Promise<void> => {
   destroyDemo?.()
   destroyDemo = undefined
+  worldStep = undefined
   clearCanvas?.()
   switch (proposedDemo) {
     case Demo.None:
@@ -29,12 +31,12 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
     case Demo.Ramp: {
       const boxCount = 100
       const { makeRampDemo } = await import('./demo/ramp');
-      ({ world, destroyDemo } = makeRampDemo(debugDraw, boxCount))
+      ({ world, destroyDemo, worldStep } = makeRampDemo(debugDraw, boxCount))
       break
     }
     case Demo.WaveMachine: {
       const { makeWaveMachineDemo } = await import('./demo/waveMachine');
-      ({ world, destroyDemo } = makeWaveMachineDemo(debugDraw))
+      ({ world, destroyDemo, worldStep } = makeWaveMachineDemo(debugDraw))
       break
     }
     default:
@@ -48,7 +50,7 @@ const shouldRun: ShouldRun = (intervalMs: number): boolean =>
   intervalMs > minimumWaitMs && world !== undefined
 
 const mainLoop: MainLoop = (intervalMs: number): void =>
-  world?.Step(intervalMs / 1000, 1, 1, 1)
+  worldStep?.(intervalMs)
 
 const getDrawBuffer: GetDrawBuffer = (): DrawBuffer => {
   world?.DebugDraw()
