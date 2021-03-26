@@ -83,7 +83,10 @@ Partial<Box2D.JSDraw>
     DrawSolidCircle(center_p, radius, dummyAxis_p, color_p),
   DrawSolidCircle,
   DrawTransform: (transform_p: number): void => {
-    const transform: Box2D.b2Transform = wrapPointer(transform_p, b2Transform);
+    const transform: Box2D.b2Transform = wrapPointer(transform_p, b2Transform)
+  },
+  DrawParticles: (centers_p: number, radius: number, colors_p: number, count: number): void => {
+    // const color: Box2D.b2Color = wrapPointer(colors_p, b2Color)
   },
   DrawPoint: (vertex_p: number, sizeMetres: number, color_p: number): void => {
     const color: Box2D.b2Color = wrapPointer(color_p, b2Color)

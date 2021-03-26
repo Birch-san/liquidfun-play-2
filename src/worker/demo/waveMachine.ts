@@ -2,6 +2,8 @@ import type { DemoResources } from './index'
 
 const { box2D } = await import('../box2d')
 
+type Destroy = () => void
+
 export const makeWaveMachineDemo = (
   debugDraw: Box2D.b2Draw
 ): DemoResources => {
@@ -43,17 +45,17 @@ export const makeWaveMachineDemo = (
     hy: number,
     x: number,
     y: number
-  ): Box2D.b2PolygonShape => {
+  ): [Box2D.b2PolygonShape, Destroy] => {
     temp.Set(x, y)
     const shape = new b2PolygonShape()
     shape.SetAsBox(hx, hy, temp, 0)
-    return shape
+    return [shape, () => destroy(shape)]
   }
 
-  const s1: Box2D.b2PolygonShape = makeShape(0.05, 1, 2, 0)
-  const s2: Box2D.b2PolygonShape = makeShape(0.05, 1, -2, 0)
-  const s3: Box2D.b2PolygonShape = makeShape(2, 0.05, 0, 1)
-  const s4: Box2D.b2PolygonShape = makeShape(2, 0.05, 0, -1)
+  const [s1, destroyS1] = makeShape(0.05, 1, 2, 0)
+  const [s2, destroyS2] = makeShape(0.05, 1, -2, 0)
+  const [s3, destroyS3] = makeShape(2, 0.05, 0, 1)
+  const [s4, destroyS4] = makeShape(2, 0.05, 0, -1)
 
   const fd = new b2FixtureDef()
   fd.density = 5
@@ -78,9 +80,9 @@ export const makeWaveMachineDemo = (
   jd.Initialize(ground, body, temp)
   const joint: Box2D.b2RevoluteJoint = castObject(world.CreateJoint(jd), b2RevoluteJoint)
   destroy(jd)
-  destroy(temp)
 
-  const box: Box2D.b2PolygonShape = makeShape(0.9, 0.9, 0, 1)
+  const [box, destroyBox] = makeShape(0.9, 0.9, 0, 1)
+  destroy(temp)
 
   const psd = new b2ParticleSystemDef()
   psd.radius = 0.025
@@ -94,14 +96,15 @@ export const makeWaveMachineDemo = (
   particleSystem.CreateParticleGroup(particleGroupDef)
   destroy(particleGroupDef)
 
-  let timeElapsedMs = 0
+  let timeElapsedSecs = 0
 
   return {
     world,
     worldStep: (intervalMs: number): void => {
-      timeElapsedMs += intervalMs
-      joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedMs) * Math.PI)
-      world.Step(intervalMs / 1000, 1, 1, 1)
+      const intervalSecs = intervalMs / 1000
+      timeElapsedSecs += intervalSecs
+      joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedSecs) * Math.PI)
+      world.Step(intervalSecs, 1, 1, 1)
     },
     destroyDemo: (): void => {
       for (let body = world.GetBodyList(); getPointer(body) !== getPointer(NULL); body = body.GetNext()) {
@@ -111,12 +114,11 @@ export const makeWaveMachineDemo = (
         world.DestroyJoint(joint)
       }
       world.DestroyParticleSystem(particleSystem)
-      destroy(s1)
-      destroy(s2)
-      destroy(s3)
-      destroy(s4)
-      destroy(box)
-      destroy(joint)
+      destroyS1()
+      destroyS2()
+      destroyS3()
+      destroyS4()
+      destroyBox()
       destroy(world)
     }
   }
