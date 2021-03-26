@@ -44,7 +44,7 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
   }
 }
 
-const frameLimit = 30
+const frameLimit = 90
 const minimumWaitMs = 1 / frameLimit * 1000
 const shouldRun: ShouldRun = (intervalMs: number): boolean =>
   intervalMs > minimumWaitMs && world !== undefined
