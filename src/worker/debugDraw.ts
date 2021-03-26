@@ -1,4 +1,4 @@
-import { GrowableQuadArray, GrowableVec2Array, growableQuadArray, growableVec2Array } from './growableTypedArray'
+import { GrowableQuadArray, GrowableVec2Array, circleCentreArray, growableQuadArray, growableVec2Array } from './growableTypedArray'
 
 const { box2D } = await import('./box2d')
 const {
@@ -26,15 +26,24 @@ const DrawSolidCircle: Box2D.JSDraw['DrawSolidCircle'] =
 
 export interface DrawBuffer {
   boxes: GrowableQuadArray
+  circles: {
+    centres: GrowableVec2Array
+    radius: number
+  }
   lineVertices: GrowableVec2Array
 }
 export const drawBuffer: DrawBuffer = {
   boxes: growableQuadArray,
+  circles: {
+    centres: circleCentreArray,
+    radius: 1
+  },
   lineVertices: growableVec2Array
 }
 export const flushDrawBuffer = (): void => {
-  const { boxes, lineVertices } = drawBuffer
+  const { boxes, circles, lineVertices } = drawBuffer
   boxes.length = 0
+  circles.centres.length = 0
   lineVertices.length = 0
 }
 
@@ -83,14 +92,19 @@ Partial<Box2D.JSDraw>
     DrawSolidCircle(center_p, radius, dummyAxis_p, color_p),
   DrawSolidCircle,
   DrawTransform: (transform_p: number): void => {
-    const transform: Box2D.b2Transform = wrapPointer(transform_p, b2Transform)
+    // const transform: Box2D.b2Transform = wrapPointer(transform_p, b2Transform)
   },
   DrawParticles: (centers_p: number, radius: number, colors_p: number, count: number): void => {
     // const color: Box2D.b2Color = wrapPointer(colors_p, b2Color)
+    drawBuffer.circles.centres.ensureFits(count)
+    // does the creation of this ArrayBuffer view result in garbage?
+    drawBuffer.circles.centres.set(new Float32Array(HEAPF32.buffer, centers_p, count * drawBuffer.circles.centres.elemSize))
+    drawBuffer.circles.centres.length = count
+    drawBuffer.circles.radius = radius
   },
   DrawPoint: (vertex_p: number, sizeMetres: number, color_p: number): void => {
-    const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
-    const vertex: Box2D.b2Vec2 = wrapPointer(vertex_p, b2Vec2)
+    // const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
+    // const vertex: Box2D.b2Vec2 = wrapPointer(vertex_p, b2Vec2)
   }
 })
 debugDraw.SetFlags(e_shapeBit | e_particleBit)

@@ -44,6 +44,10 @@ export class GrowableTypedArray<T extends TypedArray> {
   getView (): T {
     return new this.ctor(this.buffer.buffer, 0, this.length * this.elemSize)
   }
+
+  set (array: ArrayLike<number>): void {
+    this.buffer.set(array)
+  }
 }
 
 export class GrowableQuadArray extends GrowableTypedArray<Float32Array> {
@@ -117,3 +121,4 @@ export class GrowableVec2Array extends GrowableTypedArray<Float32Array> {
   }
 }
 export const growableVec2Array = new GrowableVec2Array()
+export const circleCentreArray = new GrowableVec2Array()

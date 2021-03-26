@@ -94,7 +94,7 @@ export const onContext = (
 
   const draw = (): void => {
     const drawBuffer: DrawBuffer = getDrawBuffer()
-    const { boxes, lineVertices } = drawBuffer
+    const { boxes, lineVertices, circles } = drawBuffer
 
     const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, boxes.getView())
 
@@ -114,6 +114,8 @@ export const onContext = (
     const indexBuffer: WebGLBuffer = initBuffer(gl.ELEMENT_ARRAY_BUFFER, growableQuadIndexArray.getView())
 
     const lineBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, lineVertices.getView())
+
+    const circleBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, circles.centres.getView())
 
     const positionAttr = gl.getAttribLocation(program, 'a_position')
     if (positionAttr === -1) {
@@ -145,6 +147,14 @@ export const onContext = (
       gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
       gl.enableVertexAttribArray(positionAttr)
       gl.drawArrays(gl.LINES, 0, lineVertices.length)
+      gl.bindBuffer(gl.ARRAY_BUFFER, null)
+    }
+
+    if (circles.centres.length > 0) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, circleBuffer)
+      gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
+      gl.enableVertexAttribArray(positionAttr)
+      gl.drawArrays(gl.POINTS, 0, circles.centres.length)
       gl.bindBuffer(gl.ARRAY_BUFFER, null)
     }
 
