@@ -1,5 +1,5 @@
-import type { Camera } from '../onContext'
 import type { DemoResources } from './index'
+import { mat3 } from 'gl-matrix'
 
 const { box2D } = await import('../box2d')
 
@@ -99,9 +99,9 @@ export const makeWaveMachineDemo = (
 
   let timeElapsedSecs = 0
 
-  const camera: Camera = {
-    pixelsPerMeter: 32
-  }
+  const pixelsPerMeter = 160
+  const translation = new Float32Array([0, 0.5])
+  const scaler = new Float32Array([1, 1])
 
   return {
     world,
@@ -111,7 +111,13 @@ export const makeWaveMachineDemo = (
       joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedSecs) * Math.PI)
       world.Step(intervalSecs, 1, 1, 1)
     },
-    getCamera: (): Camera => camera,
+    matrixMutator: (mat: mat3, canvasWidth: number, canvasHeight: number): void => {
+      const { translate, scale } = mat3
+      translate(mat, mat, translation)
+      scaler[0] = 1 / (canvasWidth / 2 / pixelsPerMeter)
+      scaler[1] = -1 / (canvasHeight / 2 / pixelsPerMeter)
+      scale(mat, mat, scaler)
+    },
     destroyDemo: (): void => {
       for (let body = world.GetBodyList(); getPointer(body) !== getPointer(NULL); body = body.GetNext()) {
         world.DestroyBody(body)

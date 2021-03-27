@@ -8,15 +8,11 @@ const vertexShaderText: string = await vertexShaderResponse.text()
 const fragmentShaderResponse: Response = await fetch(new URL('../../shader.frag', import.meta.url).toString())
 const fragmentShaderText: string = await fragmentShaderResponse.text()
 
-export interface Camera {
-  pixelsPerMeter: number
-}
-
 export type ShouldRun = (intervalMs: number) => boolean
 export type MainLoop = (intervalMs: number) => void
 export type GetDrawBuffer = () => DrawBuffer
 export type FlushDrawBuffer = () => void
-export type GetCamera = () => Camera
+export type MutateMatrix = (out: mat3, canvasWidth: number, canvasHeight: number) => void
 
 export const onContext = (
   gl: WebGL2RenderingContext,
@@ -24,7 +20,7 @@ export const onContext = (
   mainLoop: MainLoop,
   getDrawBuffer: GetDrawBuffer,
   flushDrawBuffer: FlushDrawBuffer,
-  getCamera: GetCamera
+  mutateMatrix: MutateMatrix
 ): void => {
   const compile = (type: GLenum, shaderStr: string): WebGLShader => {
     const shader: WebGLShader | null = gl.createShader(type)
@@ -78,22 +74,13 @@ export const onContext = (
     return buffer
   }
 
-  const { pixelsPerMeter }: Camera = getCamera()
+  const mat: mat3 = mat3.create()
 
-  const calculateMatrix = (): mat3 => {
-    const { create, translate, scale } = mat3
-    const mat: mat3 = create()
-    translate(mat, mat, [
-      -1,
-      1
-    ])
-    scale(mat, mat, [
-      1 / (gl.canvas.width / 2 / pixelsPerMeter),
-      -1 / (gl.canvas.height / 2 / pixelsPerMeter)
-    ])
-    return mat
+  const updateMatrix = (): void => {
+    const { identity } = mat3
+    identity(mat)
+    mutateMatrix(mat, gl.canvas.width, gl.canvas.height)
   }
-  const matrix: mat3 = calculateMatrix()
 
   const draw = (): void => {
     const drawBuffer: DrawBuffer = getDrawBuffer()
@@ -129,7 +116,8 @@ export const onContext = (
     if (matrixAttr === -1) {
       throw new Error("Failed to find attribute 'u_matrix'")
     }
-    gl.uniformMatrix3fv(matrixAttr, false, matrix)
+    updateMatrix()
+    gl.uniformMatrix3fv(matrixAttr, false, mat)
 
     gl.clearColor(0.5, 0.5, 0.5, 0.9)
     gl.clear(gl.COLOR_BUFFER_BIT)

@@ -1,9 +1,10 @@
-import type { Camera, GetCamera, GetDrawBuffer, MainLoop, ShouldRun } from './onContext'
+import type { MutateMatrix, GetDrawBuffer, MainLoop, ShouldRun } from './onContext'
 import { onContext } from './onContext'
 import { Demo } from '../protocol'
 import type { FromMain, ReadyFromWorker } from '../protocol'
 import { DrawBuffer, drawBuffer, flushDrawBuffer } from './debugDraw'
 import type { DestroyDemo, WorldStep } from './demo'
+import type { mat3 } from 'gl-matrix'
 
 self.onmessageerror = (event: MessageEvent) =>
   console.error('onmessageerror', event)
@@ -12,16 +13,11 @@ self.onerror = (event: ErrorEvent) =>
 
 type ClearCanvas = () => void
 
-const fallbackCamera: Camera = {
-  pixelsPerMeter: 32
-}
-const fallbackGetCamera: GetCamera = () => fallbackCamera
-
 let world: Box2D.b2World | undefined
 let destroyDemo: DestroyDemo | undefined
 let worldStep: WorldStep | undefined
 let clearCanvas: ClearCanvas | undefined
-let getCamera: GetCamera = fallbackGetCamera
+let matrixMutator: MutateMatrix | undefined
 
 const { debugDraw } = await import('./debugDraw')
 
@@ -29,21 +25,21 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
   destroyDemo?.()
   destroyDemo = undefined
   worldStep = undefined
-  getCamera = fallbackGetCamera
+  matrixMutator = undefined
   clearCanvas?.()
   switch (proposedDemo) {
     case Demo.None:
       world = undefined
       break
     case Demo.Ramp: {
-      const boxCount = 2
+      const boxCount = 100
       const { makeRampDemo } = await import('./demo/ramp');
-      ({ world, destroyDemo, worldStep, getCamera } = makeRampDemo(debugDraw, boxCount))
+      ({ world, destroyDemo, worldStep, matrixMutator } = makeRampDemo(debugDraw, boxCount))
       break
     }
     case Demo.WaveMachine: {
       const { makeWaveMachineDemo } = await import('./demo/waveMachine');
-      ({ world, destroyDemo, worldStep, getCamera } = makeWaveMachineDemo(debugDraw))
+      ({ world, destroyDemo, worldStep, matrixMutator } = makeWaveMachineDemo(debugDraw))
       break
     }
     default:
@@ -51,7 +47,7 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
   }
 }
 
-const frameLimit = 30
+const frameLimit = 90
 const minimumWaitMs = 1 / frameLimit * 1000
 const shouldRun: ShouldRun = (intervalMs: number): boolean =>
   intervalMs > minimumWaitMs && world !== undefined
@@ -63,6 +59,9 @@ const getDrawBuffer: GetDrawBuffer = (): DrawBuffer => {
   world?.DebugDraw()
   return drawBuffer
 }
+
+const mutateMatrix: MutateMatrix = (out: mat3, canvasWidth: number, canvasHeight: number): void =>
+  matrixMutator?.(out, canvasWidth, canvasHeight)
 
 self.onmessage = ({ data }: MessageEvent<FromMain>) => {
   switch (data.type) {
@@ -78,7 +77,7 @@ self.onmessage = ({ data }: MessageEvent<FromMain>) => {
         mainLoop,
         getDrawBuffer,
         flushDrawBuffer,
-        getCamera
+        mutateMatrix
       )
       break
     }
