@@ -2,11 +2,25 @@ import { growableQuadIndexArray } from './growableTypedArray'
 import type { DrawBuffer } from './debugDraw'
 import { mat3 } from 'gl-matrix'
 
-const vertexShaderResponse: Response = await fetch(new URL('../../shader.vert', import.meta.url).toString())
-const vertexShaderText: string = await vertexShaderResponse.text()
+const getShaderSource = async (name: string): Promise<string> => {
+  const shaderResponse: Response = await fetch(new URL(`../../${name}`, import.meta.url).toString())
+  return await shaderResponse.text()
+}
+const getFragmentShaderSource = async (name: string): Promise<string> =>
+  await getShaderSource(`${name}.frag`)
+const getVertexShaderSource = async (name: string): Promise<string> =>
+  await getShaderSource(`${name}.vert`)
 
-const fragmentShaderResponse: Response = await fetch(new URL('../../shader.frag', import.meta.url).toString())
-const fragmentShaderText: string = await fragmentShaderResponse.text()
+const shaderSources = {
+  vertex: {
+    general: await getVertexShaderSource('general'),
+    circle: await getVertexShaderSource('circle')
+  },
+  fragment: {
+    general: await getFragmentShaderSource('general'),
+    circle: await getFragmentShaderSource('circle')
+  }
+}
 
 export type ShouldRun = (intervalMs: number) => boolean
 export type MainLoop = (intervalMs: number) => void
@@ -22,21 +36,26 @@ export const onContext = (
   flushDrawBuffer: FlushDrawBuffer,
   mutateMatrix: MutateMatrix
 ): void => {
-  const compile = (type: GLenum, shaderStr: string): WebGLShader => {
+  const compile = (type: GLenum, shaderName: string, shaderSource: string): WebGLShader => {
     const shader: WebGLShader | null = gl.createShader(type)
     if (shader === null) {
       throw new Error('Failed to create WebGLShader')
     }
-    gl.shaderSource(shader, shaderStr)
+    gl.shaderSource(shader, shaderSource)
     gl.compileShader(shader)
 
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
       const error: string | null = gl.getShaderInfoLog(shader)
-      throw new Error(`Shader compilation failed${error == null ? '' : `: ${error}`}`)
+      const shaderType: string | undefined = ({
+        [WebGLRenderingContext.FRAGMENT_SHADER]: 'fragment',
+        [WebGLRenderingContext.VERTEX_SHADER]: 'vertex'
+      })[type]
+      throw new Error(`Compilation of ${`${shaderType} ` ?? ''}shader '${shaderName}' failed${error == null ? '' : `: ${error}`}`)
     }
     return shader
   }
+
   const link = (shaders: WebGLShader[]): WebGLProgram => {
     const program: WebGLProgram | null = gl.createProgram()
     if (program === null) {
@@ -52,16 +71,28 @@ export const onContext = (
       const error: string | null = gl.getProgramInfoLog(program)
       throw new Error(`WebGL program link failed${error == null ? '' : `: ${error}`}`)
     }
-
     return program
   }
 
-  const vertexShader: WebGLShader = compile(WebGLRenderingContext.VERTEX_SHADER, vertexShaderText)
-  const fragmentShader: WebGLShader = compile(WebGLRenderingContext.FRAGMENT_SHADER, fragmentShaderText)
+  const compileShaders = <T extends Record<string, string>> (type: GLenum, sources: T): { [K in keyof T]: WebGLShader } =>
+    Object.fromEntries(
+      Object.entries(sources)
+        .map(([name, source]: [string, string]): [string, WebGLShader] =>
+          [name, compile(type, name, source)]
+        )
+    ) as { [K in keyof T]: WebGLShader }
 
-  const program: WebGLProgram = link([vertexShader, fragmentShader])
+  const compiledShaders = {
+    fragment: compileShaders(WebGLRenderingContext.FRAGMENT_SHADER, shaderSources.fragment),
+    vertex: compileShaders(WebGLRenderingContext.VERTEX_SHADER, shaderSources.vertex)
+  }
 
-  gl.useProgram(program)
+  const programs = {
+    general: link([compiledShaders.vertex.general, compiledShaders.fragment.general]),
+    circle: link([compiledShaders.vertex.circle, compiledShaders.fragment.circle])
+  }
+
+  gl.useProgram(programs.general)
 
   const initBuffer = (target: GLenum, data: BufferSource): WebGLBuffer => {
     const buffer: WebGLBuffer | null = gl.createBuffer()
@@ -107,12 +138,12 @@ export const onContext = (
 
     const circleBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, circles.centres.getView())
 
-    const positionAttr = gl.getAttribLocation(program, 'a_position')
+    const positionAttr = gl.getAttribLocation(programs.general, 'a_position')
     if (positionAttr === -1) {
       throw new Error("Failed to find attribute 'a_position'")
     }
 
-    const matrixAttr = gl.getUniformLocation(program, 'u_matrix')
+    const matrixAttr = gl.getUniformLocation(programs.general, 'u_matrix')
     if (matrixAttr === -1) {
       throw new Error("Failed to find attribute 'u_matrix'")
     }
