@@ -1,4 +1,4 @@
-import type { MutateMatrix, GetDrawBuffer, MainLoop, ShouldRun } from './onContext'
+import type { MutateMatrix, GetDrawBuffer, MainLoop, ShouldRun, GetPixelsPerMeter } from './onContext'
 import { onContext } from './onContext'
 import { Demo } from '../protocol'
 import type { FromMain, ReadyFromWorker } from '../protocol'
@@ -18,6 +18,7 @@ let destroyDemo: DestroyDemo | undefined
 let worldStep: WorldStep | undefined
 let clearCanvas: ClearCanvas | undefined
 let matrixMutator: MutateMatrix | undefined
+let getPixelsPerMeter: GetPixelsPerMeter | undefined
 
 const { debugDraw } = await import('./debugDraw')
 
@@ -26,6 +27,7 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
   destroyDemo = undefined
   worldStep = undefined
   matrixMutator = undefined
+  getPixelsPerMeter = undefined
   clearCanvas?.()
   switch (proposedDemo) {
     case Demo.None:
@@ -34,12 +36,12 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
     case Demo.Ramp: {
       const boxCount = 100
       const { makeRampDemo } = await import('./demo/ramp');
-      ({ world, destroyDemo, worldStep, matrixMutator } = makeRampDemo(debugDraw, boxCount))
+      ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter } = makeRampDemo(debugDraw, boxCount))
       break
     }
     case Demo.WaveMachine: {
       const { makeWaveMachineDemo } = await import('./demo/waveMachine');
-      ({ world, destroyDemo, worldStep, matrixMutator } = makeWaveMachineDemo(debugDraw))
+      ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter } = makeWaveMachineDemo(debugDraw))
       break
     }
     default:
@@ -63,6 +65,9 @@ const getDrawBuffer: GetDrawBuffer = (): DrawBuffer => {
 const mutateMatrix: MutateMatrix = (out: mat3, canvasWidth: number, canvasHeight: number): void =>
   matrixMutator?.(out, canvasWidth, canvasHeight)
 
+const pixelsPerMeterGetter: GetPixelsPerMeter = (): number =>
+  getPixelsPerMeter?.() ?? 32
+
 self.onmessage = ({ data }: MessageEvent<FromMain>) => {
   switch (data.type) {
     case 'offscreenCanvas': {
@@ -77,7 +82,8 @@ self.onmessage = ({ data }: MessageEvent<FromMain>) => {
         mainLoop,
         getDrawBuffer,
         flushDrawBuffer,
-        mutateMatrix
+        mutateMatrix,
+        pixelsPerMeterGetter
       )
       break
     }

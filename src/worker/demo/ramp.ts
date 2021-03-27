@@ -88,6 +88,7 @@ export const makeRampDemo = (
     world,
     worldStep: (intervalMs: number): void =>
       world.Step(intervalMs / 1000, 1, 1),
+    getPixelsPerMeter: () => pixelsPerMeter,
     matrixMutator: (mat: mat3, canvasWidth: number, canvasHeight: number): void => {
       const { translate, scale } = mat3
       translate(mat, mat, translation)

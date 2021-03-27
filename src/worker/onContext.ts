@@ -27,6 +27,7 @@ export type MainLoop = (intervalMs: number) => void
 export type GetDrawBuffer = () => DrawBuffer
 export type FlushDrawBuffer = () => void
 export type MutateMatrix = (out: mat3, canvasWidth: number, canvasHeight: number) => void
+export type GetPixelsPerMeter = () => number
 
 export const onContext = (
   gl: WebGL2RenderingContext,
@@ -34,7 +35,8 @@ export const onContext = (
   mainLoop: MainLoop,
   getDrawBuffer: GetDrawBuffer,
   flushDrawBuffer: FlushDrawBuffer,
-  mutateMatrix: MutateMatrix
+  mutateMatrix: MutateMatrix,
+  getPixelsPerMeter: GetPixelsPerMeter
 ): void => {
   const compile = (type: GLenum, shaderName: string, shaderSource: string): WebGLShader => {
     const shader: WebGLShader | null = gl.createShader(type)
@@ -92,8 +94,6 @@ export const onContext = (
     circle: link([compiledShaders.vertex.circle, compiledShaders.fragment.circle])
   }
 
-  gl.useProgram(programs.general)
-
   const initBuffer = (target: GLenum, data: BufferSource): WebGLBuffer => {
     const buffer: WebGLBuffer | null = gl.createBuffer()
     if (buffer === null) {
@@ -113,16 +113,16 @@ export const onContext = (
     mutateMatrix(mat, gl.canvas.width, gl.canvas.height)
   }
 
-  const getAttribLocation = (program: WebGLProgram, programName: string, name: string): GLint => {
-    const attribLoc = gl.getAttribLocation(program, name)
+  const getAttribLocation = (programName: keyof typeof programs, name: string): GLint => {
+    const attribLoc = gl.getAttribLocation(programs[programName], name)
     if (attribLoc === -1) {
       throw new Error(`Failed to find attribute '${name}' for program '${programName}'`)
     }
     return attribLoc
   }
 
-  const getUniformLocation = (program: WebGLProgram, programName: string, name: string): WebGLUniformLocation => {
-    const uniformLoc: WebGLUniformLocation | null = gl.getUniformLocation(program, name)
+  const getUniformLocation = (programName: keyof typeof programs, name: string): WebGLUniformLocation => {
+    const uniformLoc: WebGLUniformLocation | null = gl.getUniformLocation(programs[programName], name)
     if (uniformLoc === -1 || uniformLoc === null) {
       throw new Error(`Failed to find uniform '${name}' for program '${programName}'`)
     }
@@ -144,12 +144,12 @@ export const onContext = (
       ({
         attrib: Object.fromEntries(
           attrib.map((name: string): [string, GLint] =>
-            [name, getAttribLocation(programs[programName], programName, name)]
+            [name, getAttribLocation(programName, name)]
           )
         ) as Record<Attrib[number], GLint>,
         uniform: Object.fromEntries(
           uniform.map((name: string): [string, WebGLUniformLocation] =>
-            [name, getUniformLocation(programs[programName], programName, name)]
+            [name, getUniformLocation(programName, name)]
           )
         ) as Record<Uniform[number], WebGLUniformLocation>
       })
@@ -172,7 +172,7 @@ export const onContext = (
     },
     circle: {
       attrib: ['a_position'] as const,
-      uniform: ['u_matrix'] as const
+      uniform: ['u_matrix', 'u_radius'] as const
     }
   })
 
@@ -180,6 +180,9 @@ export const onContext = (
     const drawBuffer: DrawBuffer = getDrawBuffer()
     const { boxes, lineVertices, circles } = drawBuffer
 
+    const pixelsPerMeter = getPixelsPerMeter()
+
+    gl.useProgram(programs.general)
     const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, boxes.getView())
 
     const quadVertices = 4
@@ -227,9 +230,9 @@ export const onContext = (
     }
 
     if (circles.centres.length > 0) {
-      // gl.uniformMatrix3fv(null, false, mat)
-      // gl.useProgram(programs.circle)
-      // gl.uniformMatrix3fv(locations.circle.uniform.u_matrix, false, mat)
+      gl.useProgram(programs.circle)
+      gl.uniform1f(locations.circle.uniform.u_radius, circles.radius * pixelsPerMeter * 2 * Math.max(mat[0], -mat[4]))
+      gl.uniformMatrix3fv(locations.circle.uniform.u_matrix, false, mat)
       gl.bindBuffer(gl.ARRAY_BUFFER, circleBuffer)
       gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
       gl.enableVertexAttribArray(locations.general.attrib.a_position)

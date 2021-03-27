@@ -111,6 +111,7 @@ export const makeWaveMachineDemo = (
       joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedSecs) * Math.PI)
       world.Step(intervalSecs, 1, 1, 1)
     },
+    getPixelsPerMeter: () => pixelsPerMeter,
     matrixMutator: (mat: mat3, canvasWidth: number, canvasHeight: number): void => {
       const { translate, scale } = mat3
       translate(mat, mat, translation)
