@@ -113,6 +113,69 @@ export const onContext = (
     mutateMatrix(mat, gl.canvas.width, gl.canvas.height)
   }
 
+  const getAttribLocation = (program: WebGLProgram, programName: string, name: string): GLint => {
+    const attribLoc = gl.getAttribLocation(program, name)
+    if (attribLoc === -1) {
+      throw new Error(`Failed to find attribute '${name}' for program '${programName}'`)
+    }
+    return attribLoc
+  }
+
+  const getUniformLocation = (program: WebGLProgram, programName: string, name: string): WebGLUniformLocation => {
+    const uniformLoc: WebGLUniformLocation | null = gl.getUniformLocation(program, name)
+    if (uniformLoc === -1 || uniformLoc === null) {
+      throw new Error(`Failed to find uniform '${name}' for program '${programName}'`)
+    }
+    return uniformLoc
+  }
+
+  interface UnresolvedLocations<Attrib extends readonly string[], Uniform extends readonly string[]> {
+    attrib: Attrib
+    uniform: Uniform
+  }
+  interface Locations<Attrib extends readonly string[], Uniform extends readonly string[]> {
+    attrib: Record<Attrib[number], GLint>
+    uniform: Record<Uniform[number], WebGLUniformLocation>
+  }
+  const getLocationsForProgram = <Attrib extends readonly string[], Uniform extends readonly string[]>(
+    programName: keyof typeof programs,
+    { attrib, uniform }: UnresolvedLocations<Attrib, Uniform>
+  ): Locations<Attrib, Uniform> =>
+      ({
+        attrib: Object.fromEntries(
+          attrib.map((name: string): [string, GLint] =>
+            [name, getAttribLocation(programs[programName], programName, name)]
+          )
+        ) as Record<Attrib[number], GLint>,
+        uniform: Object.fromEntries(
+          uniform.map((name: string): [string, WebGLUniformLocation] =>
+            [name, getUniformLocation(programs[programName], programName, name)]
+          )
+        ) as Record<Uniform[number], WebGLUniformLocation>
+      })
+  const getLocations = <T extends Record<keyof typeof programs, UnresolvedLocations<unknown & readonly string[], unknown & readonly string[]>>>(
+    programsToLocations: T
+  ): { [K in keyof typeof programs]: Locations<T[K]['attrib'], T[K]['uniform']> } =>
+      Object.fromEntries(
+        Object.entries(programsToLocations).map(
+          <Attrib extends readonly string[], Uniform extends readonly string[]>(
+            [programName, unresolvedLocations]: [string, UnresolvedLocations<Attrib, Uniform>]
+          ): [string, Locations<Attrib, Uniform>] =>
+            [programName, getLocationsForProgram(programName as keyof typeof programs, unresolvedLocations)]
+        )
+      ) as { [K in keyof typeof programs]: Locations<T[K]['attrib'], T[K]['uniform']> }
+
+  const locations = getLocations({
+    general: {
+      attrib: ['a_position'] as const,
+      uniform: ['u_matrix'] as const
+    },
+    circle: {
+      attrib: ['a_position'] as const,
+      uniform: ['u_matrix'] as const
+    }
+  })
+
   const draw = (): void => {
     const drawBuffer: DrawBuffer = getDrawBuffer()
     const { boxes, lineVertices, circles } = drawBuffer
@@ -138,17 +201,8 @@ export const onContext = (
 
     const circleBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, circles.centres.getView())
 
-    const positionAttr = gl.getAttribLocation(programs.general, 'a_position')
-    if (positionAttr === -1) {
-      throw new Error("Failed to find attribute 'a_position'")
-    }
-
-    const matrixAttr = gl.getUniformLocation(programs.general, 'u_matrix')
-    if (matrixAttr === -1) {
-      throw new Error("Failed to find attribute 'u_matrix'")
-    }
     updateMatrix()
-    gl.uniformMatrix3fv(matrixAttr, false, mat)
+    gl.uniformMatrix3fv(locations.general.uniform.u_matrix, false, mat)
 
     gl.clearColor(0.5, 0.5, 0.5, 0.9)
     gl.clear(gl.COLOR_BUFFER_BIT)
@@ -157,8 +211,8 @@ export const onContext = (
     if (growableQuadIndexArray.length > 0) {
       gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
-      gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
-      gl.enableVertexAttribArray(positionAttr)
+      gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
+      gl.enableVertexAttribArray(locations.general.attrib.a_position)
       gl.drawElements(gl.TRIANGLES, growableQuadIndexArray.length * growableQuadIndexArray.elemSize, gl.UNSIGNED_SHORT, 0)
       gl.bindBuffer(gl.ARRAY_BUFFER, null)
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
@@ -166,16 +220,19 @@ export const onContext = (
 
     if (lineVertices.length > 0) {
       gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
-      gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
-      gl.enableVertexAttribArray(positionAttr)
+      gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
+      gl.enableVertexAttribArray(locations.general.attrib.a_position)
       gl.drawArrays(gl.LINES, 0, lineVertices.length)
       gl.bindBuffer(gl.ARRAY_BUFFER, null)
     }
 
     if (circles.centres.length > 0) {
+      // gl.uniformMatrix3fv(null, false, mat)
+      // gl.useProgram(programs.circle)
+      // gl.uniformMatrix3fv(locations.circle.uniform.u_matrix, false, mat)
       gl.bindBuffer(gl.ARRAY_BUFFER, circleBuffer)
-      gl.vertexAttribPointer(positionAttr, 2, gl.FLOAT, false, 0, 0)
-      gl.enableVertexAttribArray(positionAttr)
+      gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
+      gl.enableVertexAttribArray(locations.general.attrib.a_position)
       gl.drawArrays(gl.POINTS, 0, circles.centres.length)
       gl.bindBuffer(gl.ARRAY_BUFFER, null)
     }
