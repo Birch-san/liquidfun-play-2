@@ -109,7 +109,7 @@ export const makeWaveMachineDemo = (
       const intervalSecs = intervalMs / 1000
       timeElapsedSecs += intervalSecs
       joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedSecs) * Math.PI)
-      world.Step(intervalSecs, 1, 1, 1)
+      world.Step(intervalSecs, 1, 1, 3)
     },
     getPixelsPerMeter: () => pixelsPerMeter,
     matrixMutator: (mat: mat3, canvasWidth: number, canvasHeight: number): void => {
