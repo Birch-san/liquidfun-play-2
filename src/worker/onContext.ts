@@ -1,6 +1,6 @@
 import { growableQuadIndexArray } from './growableTypedArray'
 import type { DrawBuffer } from './debugDraw'
-import { mat3 } from 'gl-matrix'
+import { mat3, vec4 } from 'gl-matrix'
 
 const getShaderSource = async (name: string): Promise<string> => {
   const shaderResponse: Response = await fetch(new URL(`../../${name}`, import.meta.url).toString())
@@ -172,15 +172,16 @@ export const onContext = (
     },
     circle: {
       attrib: ['a_position'] as const,
-      uniform: ['u_matrix', 'u_radius'] as const
+      uniform: ['u_matrix', 'u_color', 'u_diameter', 'u_edge_size', 'u_edge_color'] as const
     }
   })
+
+  const circleEdgeColor: vec4 = vec4.fromValues(0, 0, 0, 0.2)
+  const circleEdgeThicknessPx = 1
 
   const draw = (): void => {
     const drawBuffer: DrawBuffer = getDrawBuffer()
     const { boxes, lineVertices, circles } = drawBuffer
-
-    const pixelsPerMeter = getPixelsPerMeter()
 
     gl.useProgram(programs.general)
     const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, boxes.getView())
@@ -230,8 +231,13 @@ export const onContext = (
     }
 
     if (circles.centres.length > 0) {
+      const pixelsPerMeter = getPixelsPerMeter()
+      const canvasToClipSpaceRatio = Math.max(mat[0], -mat[4])
       gl.useProgram(programs.circle)
-      gl.uniform1f(locations.circle.uniform.u_radius, circles.radius * pixelsPerMeter * 2 * Math.max(mat[0], -mat[4]))
+      gl.uniform1f(locations.circle.uniform.u_diameter, 2 * circles.radius * pixelsPerMeter * canvasToClipSpaceRatio)
+      gl.uniform1f(locations.circle.uniform.u_edge_size, circleEdgeThicknessPx * canvasToClipSpaceRatio)
+      gl.uniform4fv(locations.circle.uniform.u_edge_color, circleEdgeColor)
+      gl.uniform4fv(locations.circle.uniform.u_color, circles.color)
       gl.uniformMatrix3fv(locations.circle.uniform.u_matrix, false, mat)
       gl.bindBuffer(gl.ARRAY_BUFFER, circleBuffer)
       gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)

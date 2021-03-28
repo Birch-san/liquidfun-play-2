@@ -29,6 +29,7 @@ export interface DrawBuffer {
   circles: {
     centres: GrowableVec2Array
     radius: number
+    color: Float32Array
   }
   lineVertices: GrowableVec2Array
 }
@@ -36,7 +37,8 @@ export const drawBuffer: DrawBuffer = {
   boxes: growableQuadArray,
   circles: {
     centres: circleCentreArray,
-    radius: 1
+    radius: 1,
+    color: new Float32Array([1, 1, 1, 1])
   },
   lineVertices: growableVec2Array
 }
@@ -101,6 +103,10 @@ Partial<Box2D.JSDraw>
     drawBuffer.circles.centres.set(new Float32Array(HEAPF32.buffer, centers_p, count * drawBuffer.circles.centres.elemSize))
     drawBuffer.circles.centres.length = count
     drawBuffer.circles.radius = radius
+    // the colour's just black, so this wasn't very impressive
+    // drawBuffer.circles.color[0] = HEAPF32[colors_p >> 2]
+    // drawBuffer.circles.color[1] = HEAPF32[colors_p + 4 >> 2]
+    // drawBuffer.circles.color[2] = HEAPF32[colors_p + 8 >> 2]
   },
   DrawPoint: (vertex_p: number, sizeMetres: number, color_p: number): void => {
     // const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
