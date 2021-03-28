@@ -38,7 +38,7 @@ export const drawBuffer: DrawBuffer = {
   circles: {
     centres: circleCentreArray,
     radius: 1,
-    color: new Float32Array([1, 1, 1, 1])
+    color: new Float32Array([0xff, 0xff, 0xff, 0xff])
   },
   lineVertices: growableVec2Array
 }

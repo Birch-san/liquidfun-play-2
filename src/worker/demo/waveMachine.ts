@@ -6,7 +6,8 @@ const { box2D } = await import('../box2d')
 type Destroy = () => void
 
 export const makeWaveMachineDemo = (
-  debugDraw: Box2D.b2Draw
+  debugDraw: Box2D.b2Draw,
+  frameLimit: number
 ): DemoResources => {
   const {
     b2_dynamicBody,
@@ -41,37 +42,18 @@ export const makeWaveMachineDemo = (
   destroy(bd)
 
   const temp = new b2Vec2(0, 0)
-  const makeShape = (
-    hx: number,
-    hy: number,
-    x: number,
-    y: number
-  ): [Box2D.b2PolygonShape, Destroy] => {
+  const shape = new b2PolygonShape()
+
+  for (const [hx, hy, x, y] of [
+    [0.05, 1, 2, 0],
+    [0.05, 1, -2, 0],
+    [2, 0.05, 0, 1],
+    [2, 0.05, 0, -1]
+  ]) {
     temp.Set(x, y)
-    const shape = new b2PolygonShape()
     shape.SetAsBox(hx, hy, temp, 0)
-    return [shape, () => destroy(shape)]
+    body.CreateFixture(shape, 5)
   }
-
-  const [s1, destroyS1] = makeShape(0.05, 1, 2, 0)
-  const [s2, destroyS2] = makeShape(0.05, 1, -2, 0)
-  const [s3, destroyS3] = makeShape(2, 0.05, 0, 1)
-  const [s4, destroyS4] = makeShape(2, 0.05, 0, -1)
-
-  const fd = new b2FixtureDef()
-  fd.density = 5
-
-  const makeFixture = (shape: Box2D.b2Shape): Box2D.b2Fixture => {
-    fd.shape = shape
-    return body.CreateFixture(fd)
-  }
-
-  makeFixture(s1)
-  makeFixture(s2)
-  makeFixture(s3)
-  makeFixture(s4)
-
-  destroy(fd)
 
   const jd = new b2RevoluteJointDef()
   jd.motorSpeed = 0.05 * Math.PI
@@ -82,9 +64,6 @@ export const makeWaveMachineDemo = (
   const joint: Box2D.b2RevoluteJoint = castObject(world.CreateJoint(jd), b2RevoluteJoint)
   destroy(jd)
 
-  const [box, destroyBox] = makeShape(0.9, 0.9, 0, 1)
-  destroy(temp)
-
   const psd = new b2ParticleSystemDef()
   psd.radius = 0.025
   psd.dampingStrength = 0.2
@@ -92,10 +71,16 @@ export const makeWaveMachineDemo = (
   const particleSystem: Box2D.b2ParticleSystem = world.CreateParticleSystem(psd)
   destroy(psd)
 
+  temp.Set(0, 1)
+  shape.SetAsBox(0.9, 0.9, temp, 0)
   const particleGroupDef = new b2ParticleGroupDef()
-  particleGroupDef.shape = box
+  particleGroupDef.shape = shape
   particleSystem.CreateParticleGroup(particleGroupDef)
   destroy(particleGroupDef)
+  destroy(shape)
+  destroy(temp)
+
+  const particleIterations: number = world.CalculateReasonableParticleIterations(1 / frameLimit)
 
   let timeElapsedSecs = 0
 
@@ -109,7 +94,7 @@ export const makeWaveMachineDemo = (
       const intervalSecs = intervalMs / 1000
       timeElapsedSecs += intervalSecs
       joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedSecs) * Math.PI)
-      world.Step(intervalSecs, 1, 1, 3)
+      world.Step(intervalSecs, 1, 1, particleIterations)
     },
     getPixelsPerMeter: () => pixelsPerMeter,
     matrixMutator: (mat: mat3, canvasWidth: number, canvasHeight: number): void => {
@@ -127,11 +112,11 @@ export const makeWaveMachineDemo = (
         world.DestroyJoint(joint)
       }
       world.DestroyParticleSystem(particleSystem)
-      destroyS1()
-      destroyS2()
-      destroyS3()
-      destroyS4()
-      destroyBox()
+      // destroyS1()
+      // destroyS2()
+      // destroyS3()
+      // destroyS4()
+      // destroyBox()
       destroy(world)
     }
   }

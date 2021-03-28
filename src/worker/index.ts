@@ -22,6 +22,8 @@ let getPixelsPerMeter: GetPixelsPerMeter | undefined
 
 const { debugDraw } = await import('./debugDraw')
 
+const frameLimit = 90
+
 const switchDemo = async (proposedDemo: Demo): Promise<void> => {
   destroyDemo?.()
   destroyDemo = undefined
@@ -41,7 +43,7 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
     }
     case Demo.WaveMachine: {
       const { makeWaveMachineDemo } = await import('./demo/waveMachine');
-      ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter } = makeWaveMachineDemo(debugDraw))
+      ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter } = makeWaveMachineDemo(debugDraw, frameLimit))
       break
     }
     default:
@@ -49,7 +51,6 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
   }
 }
 
-const frameLimit = 60
 const minimumWaitMs = 1 / frameLimit * 1000
 const shouldRun: ShouldRun = (intervalMs: number): boolean =>
   intervalMs > minimumWaitMs && world !== undefined
