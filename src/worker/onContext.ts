@@ -250,14 +250,16 @@ export const onContext = (
     growableQuadIndexArray.length = 0
   }
 
-  let lastRender: number = self.performance.now()
+  let lastRenderMs: number | undefined
 
-  const render: FrameRequestCallback = (): void => {
-    const now: number = self.performance.now()
-    const intervalMs: number = now - lastRender
+  const render: FrameRequestCallback = (nowMs: number): void => {
+    if (lastRenderMs === undefined) {
+      lastRenderMs = nowMs
+    }
+    const intervalMs = nowMs - lastRenderMs
     if (shouldRun(intervalMs)) {
+      lastRenderMs = nowMs
       mainLoop(intervalMs)
-      lastRender = now
       draw()
     }
     requestAnimationFrame(render)

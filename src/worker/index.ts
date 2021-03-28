@@ -22,7 +22,9 @@ let getPixelsPerMeter: GetPixelsPerMeter | undefined
 
 const { debugDraw } = await import('./debugDraw')
 
-const frameLimit = 90
+const frameLimit = 60
+const frameIntervalMs = 1 / frameLimit * 1000
+const minDrawIntervalMs = frameIntervalMs / 2
 
 const switchDemo = async (proposedDemo: Demo): Promise<void> => {
   destroyDemo?.()
@@ -51,9 +53,8 @@ const switchDemo = async (proposedDemo: Demo): Promise<void> => {
   }
 }
 
-const minimumWaitMs = 1 / frameLimit * 1000
 const shouldRun: ShouldRun = (intervalMs: number): boolean =>
-  intervalMs > minimumWaitMs && world !== undefined
+  intervalMs > minDrawIntervalMs && world !== undefined
 
 const mainLoop: MainLoop = (intervalMs: number): void =>
   worldStep?.(intervalMs)

@@ -80,7 +80,8 @@ export const makeWaveMachineDemo = (
   destroy(shape)
   destroy(temp)
 
-  const particleIterations: number = world.CalculateReasonableParticleIterations(1 / frameLimit)
+  const secsPerFrame = 1 / frameLimit
+  // const particleIterations: number = world.CalculateReasonableParticleIterations(secsPerFrame)
 
   let timeElapsedSecs = 0
 
@@ -91,10 +92,10 @@ export const makeWaveMachineDemo = (
   return {
     world,
     worldStep: (intervalMs: number): void => {
-      const intervalSecs = intervalMs / 1000
+      const intervalSecs = Math.min(intervalMs / 1000, secsPerFrame)
       timeElapsedSecs += intervalSecs
       joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedSecs) * Math.PI)
-      world.Step(intervalSecs, 1, 1, particleIterations)
+      world.Step(intervalSecs, 1, 1, 3)
     },
     getPixelsPerMeter: () => pixelsPerMeter,
     matrixMutator: (mat: mat3, canvasWidth: number, canvasHeight: number): void => {
@@ -112,11 +113,6 @@ export const makeWaveMachineDemo = (
         world.DestroyJoint(joint)
       }
       world.DestroyParticleSystem(particleSystem)
-      // destroyS1()
-      // destroyS2()
-      // destroyS3()
-      // destroyS4()
-      // destroyBox()
       destroy(world)
     }
   }
