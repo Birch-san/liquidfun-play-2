@@ -3,8 +3,6 @@ import { mat3 } from 'gl-matrix'
 
 const { box2D } = await import('../box2d')
 
-type Destroy = () => void
-
 export const makeWaveMachineDemo = (
   debugDraw: Box2D.b2Draw,
   frameLimit: number
@@ -12,7 +10,6 @@ export const makeWaveMachineDemo = (
   const {
     b2_dynamicBody,
     b2BodyDef,
-    b2FixtureDef,
     b2Vec2,
     b2ParticleGroupDef,
     b2ParticleSystemDef,
