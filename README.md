@@ -2,6 +2,10 @@
 
 **Note: currently requires Chrome/Chromium-based browser.**
 
+![](https://birchlabs.co.uk/box2d-wasm-liquidfun/liquidfun.gif)
+
+[Demo](https://birchlabs.co.uk/box2d-wasm-liquidfun/)
+
 Demonstrates functionality of [box2d-wasm](https://github.com/Birch-san/box2d-wasm)'s [liquidfun](https://github.com/Birch-san/box2d-wasm/releases/tag/v4.0.0-liquidfun.0) release.
 
 Main aim was to achieve high framerate by:
