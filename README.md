@@ -1,24 +1,23 @@
-# New Project
+# liquidfun-play
 
-> ✨ Bootstrapped with Create Snowpack App (CSA).
+**Note: currently requires Chrome/Chromium-based browser.**
 
-## Available Scripts
+Demonstrates functionality of [box2d-wasm](https://github.com/Birch-san/box2d-wasm)'s [liquidfun](https://github.com/Birch-san/box2d-wasm/releases/tag/v4.0.0-liquidfun.0) release.
 
-### npm start
+Main aim was to achieve high framerate by:
+
+- avoiding allocations
+  - `new`
+  - `[]`
+  - `{}`
+- physics via WebAssembly in a web worker
+- rendering in WebGL
+
+## Usage
+
+```bash
+npm start
+```
 
 Runs the app in the development mode.
 Open http://localhost:8080 to view it in the browser.
-
-The page will reload if you make edits.
-You will also see any lint errors in the console.
-
-### npm run build
-
-Builds a static copy of your site to the `build/` folder.
-Your app is ready to be deployed!
-
-**For the best production performance:** Add a build bundler plugin like [@snowpack/plugin-webpack](https://github.com/snowpackjs/snowpack/tree/main/plugins/plugin-webpack) or [snowpack-plugin-rollup-bundle](https://github.com/ParamagicDev/snowpack-plugin-rollup-bundle) to your `snowpack.config.json` config file.
-
-### Q: What about Eject?
-
-No eject needed! Snowpack guarantees zero lock-in, and CSA strives for the same.
