@@ -6,12 +6,18 @@ Demonstrates functionality of [box2d-wasm](https://github.com/Birch-san/box2d-wa
 
 Main aim was to achieve high framerate by:
 
-- avoiding allocations
-  - `new`
-  - `[]`
-  - `{}`
+- avoiding allocations in main loop
+  - no `new`
+  - no `[]`
+  - no `{}`
+  - pre-allocate structures
+  - fewer allocations = (fewer?) (shorter?) GC pauses
+- minimize JS->wasm calls in favour of accessing Emscripten heap directly
+  - well, [maybe this doesn't matter](https://hacks.mozilla.org/2018/10/calls-between-javascript-and-webassembly-are-finally-fast-%F0%9F%8E%89/)
 - physics via WebAssembly in a web worker
 - rendering in WebGL
+  - renderer is in same thread as physics… not ideal, but makes the timing easy to reason about, and eliminates need to post world state to another thread.
+    - maybe [SharedArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) would be an alternative which cheaply enables another thread to render the world state.
 
 ## Usage
 
