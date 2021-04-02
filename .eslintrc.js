@@ -26,7 +26,7 @@ module.exports = {
       parserOptions: {
         project: [
           './src/main/tsconfig.json',
-          './src/protocol/tsconfig.json',
+          './src/common/tsconfig.json',
           './src/worker/tsconfig.json'
         ],
         tsconfigRootDir: __dirname,

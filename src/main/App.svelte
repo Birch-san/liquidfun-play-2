@@ -1,8 +1,8 @@
 <script lang='ts'>
   import { onMount } from 'svelte'
   import { assert } from './assert'
-  import { Demo } from '../protocol'
-  import type { CanvasFromMain, FromWorker, SwitchDemo } from '../protocol'
+  import { Demo } from '../common/protocol'
+  import type { CanvasFromMain, FromWorker, SwitchDemo } from '../common/protocol'
 
   type ChangeDemo = (demo: Demo) => void
   let changeDemo: ChangeDemo | undefined
