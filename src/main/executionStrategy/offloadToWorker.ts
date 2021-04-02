@@ -1,11 +1,11 @@
 import type { CanvasFromMain, Demo, FromWorker, SwitchDemo } from '../../common/protocol'
-import type { ChangeDemo, Strategy, StrategyStart } from './index'
+import type { ChangeDemo, ExecutionStrategy, ExecutionStrategyStart } from './index'
 
-export const offloadToWorker: StrategyStart = ({
+export const offloadToWorker: ExecutionStrategyStart = ({
   canvasElement,
   setFatalError,
   initialDemo
-}): Strategy => {
+}): ExecutionStrategy => {
   const worker = new Worker(new URL('../../worker/index.js', import.meta.url), {
     type: 'module'
   })

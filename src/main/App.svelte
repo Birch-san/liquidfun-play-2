@@ -2,8 +2,8 @@
   import { onMount } from 'svelte'
   import { assert } from './assert'
   import { Demo } from '../common/protocol'
-  import type { ChangeDemo, StrategyStartOptions } from './strategy/index'
-  import { offloadToWorker } from './strategy/offloadToWorker'
+  import type { ChangeDemo, ExecutionStrategyStartOptions } from './executionStrategy/index'
+  import { offloadToWorker } from './executionStrategy/offloadToWorker'
 
   let changeDemo: ChangeDemo | undefined
 
@@ -21,7 +21,7 @@
   
   onMount(() => {
     assert(canvasElement)
-    const strategyStartOptions: StrategyStartOptions = {
+    const strategyStartOptions: ExecutionStrategyStartOptions = {
       setFatalError: (message: string) => {
         fatalError = message
       },
