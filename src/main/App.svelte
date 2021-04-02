@@ -2,9 +2,9 @@
   import { onMount } from 'svelte'
   import { assert } from './assert'
   import { Demo } from '../common/protocol'
-  import type { CanvasFromMain, FromWorker, SwitchDemo } from '../common/protocol'
+  import type { ChangeDemo, StrategyStartOptions } from './strategy/index'
+  import { offloadToWorker } from './strategy/offloadToWorker'
 
-  type ChangeDemo = (demo: Demo) => void
   let changeDemo: ChangeDemo | undefined
 
   const width = 800
@@ -20,52 +20,19 @@
   let fatalError: string | undefined
   
   onMount(() => {
-    const worker = new Worker(new URL('../worker/index.js', import.meta.url), {
-      type: 'module'
-    })
-
-    changeDemo = (demo: Demo): void => {
-      const message: SwitchDemo = {
-        type: 'switchDemo',
-        demo
-      }
-      worker.postMessage(message)
+    assert(canvasElement)
+    const strategyStartOptions: StrategyStartOptions = {
+      setFatalError: (message: string) => {
+        fatalError = message
+      },
+      canvasElement,
+      initialDemo: demo
     }
+    const strategy = offloadToWorker(strategyStartOptions)
+    const { destroy } = strategy;
+    ({ changeDemo } = strategy)
 
-    const transferControlToOffscreen = (): void => {
-      assert(canvasElement)
-      if (!('transferControlToOffscreen' in canvasElement)) {
-        throw new Error('WebGL in Worker unsupported')
-      }
-      const offscreenCanvas: OffscreenCanvas = canvasElement.transferControlToOffscreen()
-      const message: CanvasFromMain = {
-        type: 'offscreenCanvas',
-        offscreenCanvas
-      }
-      worker.postMessage(message, [offscreenCanvas])
-    }
-
-    worker.onmessage = ({ data }: MessageEvent<FromWorker>) => {
-      if (data.type === 'ready') {
-        transferControlToOffscreen()
-        assert(changeDemo)
-        changeDemo(demo)
-      } else {
-        console.log(data)
-      }
-    }
-
-    worker.onmessageerror = (event: MessageEvent) =>
-      console.error('onmessageerror', event)
-    worker.onerror = (event: ErrorEvent) => {
-      fatalError = event.message
-      console.error('onerror', event)
-      console.error('onerror', fatalError)
-    }
-
-    return () => {
-      worker.terminate()
-    }
+    return destroy
   })
 </script>
   
