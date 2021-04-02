@@ -1,5 +1,11 @@
 # liquidfun-play
 
+<p>
+    <a href="https://twitter.com/intent/follow?screen_name=Birchlabs">
+        <img src="https://img.shields.io/twitter/follow/Birchlabs.svg?style=social&logo=twitter"/>
+    </a>
+</p>
+
 **Note: currently requires Chrome/Chromium-based browser.**
 
 ![](https://birchlabs.co.uk/box2d-wasm-liquidfun/liquidfun.gif)
