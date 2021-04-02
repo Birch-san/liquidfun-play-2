@@ -5,18 +5,29 @@
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Web site created using create-snowpack-app" />
-    <title>Snowpack App</title>
+    <title>Fluid simulation in box2d-wasm</title>
+    <link rel='stylesheet' href='global.css'>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <script type="module" src="dist/main/index.js"></script>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+    <header>
+      <nav>
+        <a href="https://birchlabs.co.uk/">
+          <div style="display: inline-block; position: relative; top: -1px;">❮</div>
+          <div style="display: inline-block;">Back to Birchlabs</div>
+        </a>
+      </nav>
+    </header>
+    <div class="middle-col">
+      <h1>Fluid simulation in box2d-wasm</h1>
+      <div id="svelte-mount"></div>
+      <noscript>You need to enable JavaScript to run this app.</noscript>
+      <script type="module" src="dist/main/index.js"></script>
+      <footer>
+        <p>
+          <small>Built with <a href="https://github.com/Birch-san/box2d-wasm">box2d-wasm</a>.<br>
+          &mdash;Alex Birch</small>
+        </p>
+      </footer>
+    </div>
   </body>
 </html>
