@@ -3,6 +3,7 @@
     "start": "snowpack dev",
     "build": "snowpack build",
     "lint": "npx eslint src --ext .ts,.svelte",
+    "tsc": "npx tsc --build src/main/tsconfig.json",
     "test": "echo \"This template does not include a test runner by default.\" && exit 1"
   },
   "devDependencies": {

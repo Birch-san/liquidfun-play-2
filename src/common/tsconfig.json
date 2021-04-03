@@ -2,12 +2,12 @@
   "compilerOptions": {
     "baseUrl": ".",
 
-    // if you're tired of snowpack's TS build warning that protocol/index.d.ts
-    // doesn't exist (when src/main tries to import types from src/protocol)
+    // if you're tired of snowpack's TS build warning that common/index.d.ts
+    // doesn't exist (when src/main tries to import types from src/common)
     // you can do a one-off `tsc --build src/main/tsconfig.json`
     // to emit some .d.ts to disk.
     // but otherwise this stuff about what/where to output is unused.
-    "outDir": "../../dist/protocol",
+    "outDir": "../../dist/common",
     "declaration": true,
     "declarationMap": true,
 
