@@ -5,7 +5,6 @@ export enum ExecutionStrategyType {
   RunOnMainThread = 'RunOnMainThread'
 }
 
-export type ReplaceCanvas = () => void
 export type ChangeDemo = (demo: Demo) => void
 export type ExecutionStrategyDestroy = () => void
 export interface ExecutionStrategy {
@@ -18,6 +17,5 @@ export interface ExecutionStrategyStartOptions {
   setFatalError: SetFatalError
   canvasElement: HTMLCanvasElement
   initialDemo: Demo
-  replaceCanvas: ReplaceCanvas
 }
 export type ExecutionStrategyStart = (options: ExecutionStrategyStartOptions) => ExecutionStrategy

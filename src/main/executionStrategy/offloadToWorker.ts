@@ -4,8 +4,7 @@ import type { ChangeDemo, ExecutionStrategy, ExecutionStrategyStart } from './in
 export const offloadToWorker: ExecutionStrategyStart = ({
   canvasElement,
   setFatalError,
-  initialDemo,
-  replaceCanvas
+  initialDemo
 }): ExecutionStrategy => {
   const worker = new Worker(new URL('../../worker/index.js', import.meta.url), {
     type: 'module'
@@ -51,7 +50,6 @@ export const offloadToWorker: ExecutionStrategyStart = ({
     changeDemo,
     destroy: () => {
       worker.terminate()
-      replaceCanvas()
     }
   }
 }

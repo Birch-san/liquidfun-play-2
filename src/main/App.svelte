@@ -7,22 +7,29 @@
 
   type ChangeExecutionStrategy = (strategy: ExecutionStrategyType) => void
 
+  const acquireNewCanvas = (): void => {
+    if (!canvasElement) {
+      assert(canvasMount)
+      canvasElement = canvasMount.appendChild(makeCanvas())
+      return
+    }
+    const proposedCanvas: HTMLCanvasElement = canvasElement.cloneNode() as HTMLCanvasElement
+    canvasElement.replaceWith(proposedCanvas)
+    canvasElement = proposedCanvas
+  }
+
   let destroy: ExecutionStrategyDestroy | undefined
   let changeDemo: ChangeDemo | undefined
   const changeExecutionStrategy: ChangeExecutionStrategy = async (strategyType: ExecutionStrategyType): Promise<void> => {
     destroy?.()
+    acquireNewCanvas()
     assert(canvasElement)
     const strategyStartOptions: ExecutionStrategyStartOptions = {
       setFatalError: (message: string) => {
         fatalError = message
       },
       canvasElement,
-      initialDemo: demo,
-      replaceCanvas: () => {
-        assert(canvasElement)
-        canvasElement.replaceWith(canvasElement.cloneNode())
-        canvasElement = document.getElementsByTagName('canvas')[0]
-      }
+      initialDemo: demo
     };
     ({ changeDemo, destroy } = (await {
       [ExecutionStrategyType.OffloadToWorker]: async (): Promise<ExecutionStrategyStart> => {
@@ -39,7 +46,7 @@
   const width = 800
   const height = 700
 
-  let executionStrategy = ExecutionStrategyType.OffloadToWorker
+  let executionStrategy = ExecutionStrategyType.RunOnMainThread
   const onChangeExecutionStrategy = (event: Event): void => {
     event.stopPropagation()
     changeExecutionStrategy?.(executionStrategy)
@@ -64,9 +71,6 @@
   let fatalError: string | undefined
   
   onMount(() => {
-    const proposedCanvas: HTMLCanvasElement = makeCanvas()
-    assert(canvasMount)
-    canvasElement = canvasMount.appendChild(proposedCanvas)
     changeExecutionStrategy(executionStrategy)
 
     return () => {
