@@ -28,6 +28,7 @@ export type GetDrawBuffer = () => DrawBuffer
 export type FlushDrawBuffer = () => void
 export type MutateMatrix = (out: mat3, canvasWidth: number, canvasHeight: number) => void
 export type GetPixelsPerMeter = () => number
+export type StopMainLoop = () => void
 
 export const onContext = (
   gl: WebGL2RenderingContext,
@@ -37,7 +38,7 @@ export const onContext = (
   flushDrawBuffer: FlushDrawBuffer,
   mutateMatrix: MutateMatrix,
   getPixelsPerMeter: GetPixelsPerMeter
-): void => {
+): StopMainLoop => {
   const compile = (type: GLenum, shaderName: string, shaderSource: string): WebGLShader => {
     const shader: WebGLShader | null = gl.createShader(type)
     if (shader === null) {
@@ -262,7 +263,10 @@ export const onContext = (
       mainLoop(intervalMs)
       draw()
     }
-    requestAnimationFrame(render)
+    animationFrameHandle = requestAnimationFrame(render)
   }
-  requestAnimationFrame(render)
+  let animationFrameHandle: number = requestAnimationFrame(render)
+  return () => {
+    cancelAnimationFrame(animationFrameHandle)
+  }
 }

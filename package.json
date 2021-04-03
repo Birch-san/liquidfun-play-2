@@ -12,17 +12,18 @@
     "@types/snowpack-env": "^2.3.3",
     "@typescript-eslint/eslint-plugin": "^4.18.0",
     "@typescript-eslint/parser": "^4.18.0",
-    "box2d-wasm": "^4.0.0-liquidfun.0",
     "eslint": "^7.22.0",
     "eslint-config-standard-with-typescript": "^20.0.0",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.3.1",
     "eslint-plugin-svelte3": "^3.1.2",
+    "snowpack": "^3.2.2",
     "svelte-preprocess": "^4.6.9",
     "typescript": "^4.2.3"
   },
   "dependencies": {
+    "box2d-wasm": "4.0.1-liquidfun.0",
     "gl-matrix": "^3.3.0",
     "pixi.js": "^6.0.0",
     "svelte": "^3.35.0"

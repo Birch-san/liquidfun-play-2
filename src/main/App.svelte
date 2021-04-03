@@ -1,14 +1,56 @@
 <script lang='ts'>
   import { onMount } from 'svelte'
   import { assert } from './assert'
-  import { Demo } from '../protocol'
-  import type { CanvasFromMain, FromWorker, SwitchDemo } from '../protocol'
+  import { Demo } from '../common/protocol'
+  import { ExecutionStrategyType } from './executionStrategy/index'
+  import type { ChangeDemo, ExecutionStrategyDestroy, ExecutionStrategyStart, ExecutionStrategyStartOptions } from './executionStrategy/index'
 
-  type ChangeDemo = (demo: Demo) => void
+  type ChangeExecutionStrategy = (strategy: ExecutionStrategyType) => void
+
+  const acquireNewCanvas = (): void => {
+    if (!canvasElement) {
+      assert(canvasMount)
+      canvasElement = canvasMount.appendChild(makeCanvas())
+      return
+    }
+    const proposedCanvas: HTMLCanvasElement = canvasElement.cloneNode() as HTMLCanvasElement
+    canvasElement.replaceWith(proposedCanvas)
+    canvasElement = proposedCanvas
+  }
+
+  let destroy: ExecutionStrategyDestroy | undefined
   let changeDemo: ChangeDemo | undefined
+  const changeExecutionStrategy: ChangeExecutionStrategy = async (strategyType: ExecutionStrategyType): Promise<void> => {
+    destroy?.()
+    acquireNewCanvas()
+    assert(canvasElement)
+    const strategyStartOptions: ExecutionStrategyStartOptions = {
+      setFatalError: (message: string) => {
+        fatalError = message
+      },
+      canvasElement,
+      initialDemo: demo
+    };
+    ({ changeDemo, destroy } = (await {
+      [ExecutionStrategyType.OffloadToWorker]: async (): Promise<ExecutionStrategyStart> => {
+        const { offloadToWorker } = await import('./executionStrategy/offloadToWorker')
+        return offloadToWorker
+      },
+      [ExecutionStrategyType.RunOnMainThread]: async (): Promise<ExecutionStrategyStart> => {
+        const { runOnMainThread } = await import('./executionStrategy/runOnMainThread')
+        return runOnMainThread
+      }
+    }[strategyType]())(strategyStartOptions))
+  }
 
   const width = 800
   const height = 700
+
+  let executionStrategy = ExecutionStrategyType.RunOnMainThread
+  const onChangeExecutionStrategy = (event: Event): void => {
+    event.stopPropagation()
+    changeExecutionStrategy?.(executionStrategy)
+  }
 
   let demo: Demo = Demo.WaveMachine
   const onChangeDemo = (event: Event): void => {
@@ -16,55 +58,24 @@
     changeDemo?.(demo)
   }
 
+  // we manage canvas outside of Svelte, for more control over recreation of canvas
+  const makeCanvas = (): HTMLCanvasElement => {
+    const canvas: HTMLCanvasElement = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    return canvas
+  }
+
+  let canvasMount: HTMLDivElement | undefined
   let canvasElement: HTMLCanvasElement | undefined
   let fatalError: string | undefined
   
   onMount(() => {
-    const worker = new Worker(new URL('../worker/index.js', import.meta.url), {
-      type: 'module'
-    })
-
-    changeDemo = (demo: Demo): void => {
-      const message: SwitchDemo = {
-        type: 'switchDemo',
-        demo
-      }
-      worker.postMessage(message)
-    }
-
-    const transferControlToOffscreen = (): void => {
-      assert(canvasElement)
-      if (!('transferControlToOffscreen' in canvasElement)) {
-        throw new Error('WebGL in Worker unsupported')
-      }
-      const offscreenCanvas: OffscreenCanvas = canvasElement.transferControlToOffscreen()
-      const message: CanvasFromMain = {
-        type: 'offscreenCanvas',
-        offscreenCanvas
-      }
-      worker.postMessage(message, [offscreenCanvas])
-    }
-
-    worker.onmessage = ({ data }: MessageEvent<FromWorker>) => {
-      if (data.type === 'ready') {
-        transferControlToOffscreen()
-        assert(changeDemo)
-        changeDemo(demo)
-      } else {
-        console.log(data)
-      }
-    }
-
-    worker.onmessageerror = (event: MessageEvent) =>
-      console.error('onmessageerror', event)
-    worker.onerror = (event: ErrorEvent) => {
-      fatalError = event.message
-      console.error('onerror', event)
-      console.error('onerror', fatalError)
-    }
+    changeExecutionStrategy(executionStrategy)
 
     return () => {
-      worker.terminate()
+      destroy?.()
+      canvasElement?.remove()
     }
   })
 </script>
@@ -78,9 +89,6 @@
   .fatal-error {
     color: darkred;
   }
-  canvas {
-    border: 1px solid black;
-  }
 </style>
   
 <div class="middle-col">
@@ -91,7 +99,8 @@
     <p>Here's a GIF of what it's <em>supposed</em> to look like:</p>
     <img src="https://birchlabs.co.uk/box2d-wasm-liquidfun/liquidfun.gif" width="350px" height="306">
   {:else}
-    <canvas bind:this={canvasElement} width={width} height={height}></canvas>
+    <div bind:this={canvasMount}/>
+    <!-- <canvas bind:this={canvasElement} width={width} height={height}></canvas> -->
     <fieldset>
       <legend>Demo</legend>
       <label>
@@ -105,6 +114,17 @@
       <label>
         <input type=radio bind:group={demo} value={Demo.None} on:change={onChangeDemo}>
         None
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>Execution Strategy</legend>
+      <label>
+        <input type=radio bind:group={executionStrategy} value={ExecutionStrategyType.OffloadToWorker} on:change={onChangeExecutionStrategy}>
+        Offload to worker
+      </label>
+      <label>
+        <input type=radio bind:group={executionStrategy} value={ExecutionStrategyType.RunOnMainThread} on:change={onChangeExecutionStrategy}>
+        Run on main thread
       </label>
     </fieldset>
   {/if}

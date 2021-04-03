@@ -16,10 +16,11 @@
     "noEmit": true,
     /* Additional Options */
     "strict": true,
-    "skipLibCheck": false
+    "skipLibCheck": false,
+    "isolatedModules": true
   },
   "references": [
     { "path": "../worker" },
-    { "path": "../protocol" }
+    { "path": "../common" }
   ]
 }

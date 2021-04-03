@@ -22,6 +22,6 @@
     "esModuleInterop": true
   },
   "references": [
-    { "path": "../protocol" }
+    { "path": "../common" }
   ]
 }
