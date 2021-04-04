@@ -20,7 +20,7 @@ export const offloadToWorker: ExecutionStrategyStart = ({
 
   const transferControlToOffscreen = (): void => {
     if (!('transferControlToOffscreen' in canvasElement)) {
-      throw new Error('WebGL in Worker unsupported')
+      throw new Error('Your browser does not support HTMLCanvasElement#transferControlToOffscreen')
     }
     const offscreenCanvas: OffscreenCanvas = canvasElement.transferControlToOffscreen()
     const message: CanvasFromMain = {
