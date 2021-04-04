@@ -27,7 +27,8 @@ module.exports = {
         project: [
           './src/main/tsconfig.json',
           './src/common/tsconfig.json',
-          './src/worker/tsconfig.json'
+          './src/worker/tsconfig.json',
+          './serve/tsconfig.json'
         ],
         tsconfigRootDir: __dirname,
         extraFileExtensions: ['.svelte']

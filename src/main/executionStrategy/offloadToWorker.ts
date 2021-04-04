@@ -7,7 +7,7 @@ export const offloadToWorker: ExecutionStrategyStart = ({
   initialDemo
 }): ExecutionStrategy => {
   const worker = new Worker(new URL('../../worker/index.js', import.meta.url), {
-    type: 'module'
+    type: import.meta.env.MODE === 'development' ? 'module' : 'classic'
   })
 
   const changeDemo: ChangeDemo = (demo: Demo): void => {

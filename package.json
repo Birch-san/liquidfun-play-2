@@ -4,21 +4,25 @@
     "build": "snowpack build",
     "lint": "npx eslint src --ext .ts,.svelte",
     "tsc": "npx tsc --build src/main/tsconfig.json",
-    "test": "echo \"This template does not include a test runner by default.\" && exit 1"
+    "test": "echo \"This template does not include a test runner by default.\" && exit 1",
+    "serve": "npm --prefix serve start"
   },
   "devDependencies": {
+    "@efox/snowpack-plugin-webpack5": "^1.0.0",
     "@snowpack/plugin-svelte": "^3.6.0",
     "@snowpack/plugin-typescript": "^1.2.1",
     "@tsconfig/svelte": "^1.0.10",
     "@types/snowpack-env": "^2.3.3",
     "@typescript-eslint/eslint-plugin": "^4.18.0",
     "@typescript-eslint/parser": "^4.18.0",
+    "core-js": "^3.10.0",
     "eslint": "^7.22.0",
     "eslint-config-standard-with-typescript": "^20.0.0",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.3.1",
     "eslint-plugin-svelte3": "^3.1.2",
+    "file-loader": "^6.2.0",
     "snowpack": "^3.2.2",
     "svelte-preprocess": "^4.6.9",
     "typescript": "^4.2.3"
@@ -28,5 +32,8 @@
     "gl-matrix": "^3.3.0",
     "pixi.js": "^6.0.0",
     "svelte": "^3.35.0"
-  }
+  },
+  "workspaces": [
+    "serve"
+  ]
 }

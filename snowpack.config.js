@@ -1,4 +1,5 @@
 const { dirname } = require('path')
+const { DefinePlugin } = require('webpack')
 
 /** @type {import("snowpack").SnowpackUserConfig } */
 module.exports = {
@@ -9,7 +10,17 @@ module.exports = {
   },
   plugins: [
     '@snowpack/plugin-svelte',
-    ['@snowpack/plugin-typescript', { args: '--project ./src/main' }]
+    ['@snowpack/plugin-typescript', { args: '--project ./src/main' }],
+    ['@efox/snowpack-plugin-webpack5', {
+      extendConfig: (config) => {
+        Object.assign(config.resolve.fallback ??= {}, { fs: false, path: false });
+        (config.experiments ??= {}).topLevelAwait = true
+        config.plugins.push(new DefinePlugin({
+          __SNOWPACK_ENV__: JSON.stringify('production')
+        }))
+        return config
+      }
+    }]
   ],
   routes: [
     /* Enable an SPA Fallback in development: */
@@ -17,7 +28,7 @@ module.exports = {
   ],
   optimize: {
     /* Example: Bundle your final build: */
-    // "bundle": true,
+    // bundle: true
   },
   packageOptions: {
     /* ... */
