@@ -17,13 +17,18 @@ export const runOnMainThread: ExecutionStrategyStart = ({
   canvasElement,
   initialDemo
 }): ExecutionStrategy => {
-  const gl: WebGL2RenderingContext | null = canvasElement.getContext('webgl2')
+  let gl: WebGL2RenderingContext | WebGLRenderingContext | null = canvasElement.getContext('webgl2')
   if (gl === null) {
-    throw new Error('Failed to create WebGL2 rendering context')
+    console.warn('Failed to create WebGL2 rendering context; falling back to WebGL')
+    gl = canvasElement.getContext('webgl')
   }
-  setClearCanvas(() => gl.clear(gl.COLOR_BUFFER_BIT))
+  if (gl === null) {
+    throw new Error('Failed to create WebGL rendering context')
+  }
+  const glTruthy: WebGL2RenderingContext | WebGLRenderingContext = gl
+  setClearCanvas(() => glTruthy.clear(glTruthy.COLOR_BUFFER_BIT))
   const stopMainLoop: StopMainLoop = onContext(
-    gl,
+    glTruthy,
     shouldRun,
     mainLoop,
     getDrawBuffer,
@@ -32,7 +37,7 @@ export const runOnMainThread: ExecutionStrategyStart = ({
     pixelsPerMeterGetter
   )
   const changeDemo: ChangeDemo = (demo: Demo): void => {
-    switchDemo(demo)
+    void switchDemo(demo)
   }
   changeDemo(initialDemo)
 

@@ -31,7 +31,7 @@ export type GetPixelsPerMeter = () => number
 export type StopMainLoop = () => void
 
 export const onContext = (
-  gl: WebGL2RenderingContext,
+  gl: WebGLRenderingContext | WebGL2RenderingContext,
   shouldRun: ShouldRun,
   mainLoop: MainLoop,
   getDrawBuffer: GetDrawBuffer,
