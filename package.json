@@ -4,7 +4,8 @@
     "build": "snowpack build",
     "lint": "npx eslint src --ext .ts,.svelte",
     "tsc": "npx tsc --build src/main/tsconfig.json",
-    "test": "echo \"This template does not include a test runner by default.\" && exit 1"
+    "test": "echo \"This template does not include a test runner by default.\" && exit 1",
+    "serve": "npm --prefix serve start"
   },
   "devDependencies": {
     "@efox/snowpack-plugin-webpack5": "^1.0.0",
@@ -31,5 +32,8 @@
     "gl-matrix": "^3.3.0",
     "pixi.js": "^6.0.0",
     "svelte": "^3.35.0"
-  }
+  },
+  "workspaces": [
+    "serve"
+  ]
 }
