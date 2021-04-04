@@ -12,23 +12,16 @@ import {
   switchDemo,
   setClearCanvas
 } from '../../common/demoSwitcher'
+import { getWebGLContext } from '../../common/getWebGLContext'
 
 export const runOnMainThread: ExecutionStrategyStart = ({
   canvasElement,
   initialDemo
 }): ExecutionStrategy => {
-  let gl: WebGL2RenderingContext | WebGLRenderingContext | null = canvasElement.getContext('webgl2')
-  if (gl === null) {
-    console.warn('Failed to create WebGL2 rendering context; falling back to WebGL')
-    gl = canvasElement.getContext('webgl')
-  }
-  if (gl === null) {
-    throw new Error('Failed to create WebGL rendering context')
-  }
-  const glTruthy: WebGL2RenderingContext | WebGLRenderingContext = gl
-  setClearCanvas(() => glTruthy.clear(glTruthy.COLOR_BUFFER_BIT))
+  const gl: WebGL2RenderingContext | WebGLRenderingContext = getWebGLContext(canvasElement)
+  setClearCanvas(() => gl.clear(gl.COLOR_BUFFER_BIT))
   const stopMainLoop: StopMainLoop = onContext(
-    glTruthy,
+    gl,
     shouldRun,
     mainLoop,
     getDrawBuffer,
