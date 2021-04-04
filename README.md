@@ -6,7 +6,7 @@
     </a>
 </p>
 
-**Note: Requires Chrome/Chromium-based browser in development. Firefox supported after production bundle.**
+**Note: Requires Chrome/Chromium-based browser in development. Firefox and Safari supported after production bundle.**
 
 ![](https://birchlabs.co.uk/box2d-wasm-liquidfun/liquidfun.gif)
 
