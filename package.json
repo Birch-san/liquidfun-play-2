@@ -1,7 +1,7 @@
 {
   "scripts": {
     "start": "snowpack dev",
-    "build": "snowpack build",
+    "build": "npm run tsc && snowpack build",
     "lint": "npx eslint src --ext .ts,.svelte",
     "tsc": "npx tsc --build src/main/tsconfig.json",
     "test": "echo \"This template does not include a test runner by default.\" && exit 1",
@@ -28,7 +28,7 @@
     "typescript": "^4.2.3"
   },
   "dependencies": {
-    "box2d-wasm": "4.0.1-liquidfun.0",
+    "box2d-wasm": "npm:liquidfun-wasm@^4.0.2",
     "gl-matrix": "^3.3.0",
     "pixi.js": "^6.0.0",
     "svelte": "^3.35.0"
