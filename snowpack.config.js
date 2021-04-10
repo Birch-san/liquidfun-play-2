@@ -12,6 +12,7 @@ module.exports = {
     '@snowpack/plugin-svelte',
     ['@snowpack/plugin-typescript', { args: '--project ./src/main' }],
     ['@efox/snowpack-plugin-webpack5', {
+      /** @param {import("webpack").Configuration } config */
       extendConfig: (config) => {
         Object.assign(config.resolve.fallback ??= {}, { fs: false, path: false });
         (config.experiments ??= {}).topLevelAwait = true
