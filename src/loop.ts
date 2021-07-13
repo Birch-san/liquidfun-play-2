@@ -122,13 +122,20 @@ export const doLoop = ({
   physics
 }: DoLoopParams): StopLoop => {
   let renderHandle: number | undefined
-  let startMs: number | undefined
+  let lastMs: number | undefined
   const renderTask = (nowMs: number): void => {
-    if (startMs === undefined) {
-      startMs = nowMs
+    if (lastMs === undefined) {
+      lastMs = nowMs - frameIntervalMs
     }
-    const elapsedMs = nowMs - startMs
-    physics(elapsedMs)
+    const elapsedMs = nowMs - lastMs
+    // console.log(1 / elapsedMs * 1000)
+    lastMs = nowMs
+    // animation frames seem to be scheduled not necessarily
+    // at 60fps, but sometimes 30fps or 20fps.
+    // be prepared to calculate 3 frames of physics in normal operation.
+    // any more infrequent than that probably indicates page got backgrounded;
+    // if we detect a long gap, we shouldn't attempt to catch up.
+    physics(Math.min(elapsedMs, frameIntervalMs * 3))
     draw()
     renderHandle = requestAnimationFrame(renderTask)
   }

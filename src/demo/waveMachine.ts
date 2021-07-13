@@ -1,5 +1,6 @@
 import type { DemoResources } from './index'
 import { mat3 } from 'gl-matrix'
+import { frameIntervalMs } from '../loop'
 
 const { box2D } = await import('../box2d')
 
@@ -89,10 +90,12 @@ export const makeWaveMachineDemo = (
   return {
     world,
     worldStep: (intervalMs: number): void => {
-      const intervalSecs = Math.min(intervalMs / 1000, secsPerFrame)
+      // 3 particle iterations seems to be enough to simulate a 60th of a second
+      const particleIterations: number = Math.ceil(intervalMs / 3)
+      const intervalSecs = intervalMs / 1000
       timeElapsedSecs += intervalSecs
       joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedSecs) * Math.PI)
-      world.Step(intervalSecs, 1, 1, 3)
+      world.Step(intervalSecs, 1, 1, particleIterations)
     },
     getPixelsPerMeter: () => pixelsPerMeter,
     matrixMutator: (mat: mat3, canvasWidth: number, canvasHeight: number): void => {

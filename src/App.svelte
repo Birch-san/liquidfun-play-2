@@ -20,7 +20,7 @@
   const height = 700
 
   let avgFrameDurationMs: number = 0
-  let avgFrameRate: number = 60
+  let avgFrameRate: number = 0
 
   let canvasElement: HTMLCanvasElement | undefined
 
