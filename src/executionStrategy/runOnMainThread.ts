@@ -1,7 +1,7 @@
-import type { Demo } from '../../common/protocol'
+import type { Demo } from '../protocol'
 import type { ChangeDemo, ExecutionStrategy, ExecutionStrategyStart } from './index'
-import type { StopMainLoop } from '../../common/onContext'
-import { onContext } from '../../common/onContext'
+import type { StopMainLoop } from '../onContext'
+import { onContext } from '../onContext'
 import {
   shouldRun,
   mainLoop,
@@ -11,8 +11,8 @@ import {
   pixelsPerMeterGetter,
   switchDemo,
   setClearCanvas
-} from '../../common/demoSwitcher'
-import { getWebGLContext } from '../../common/getWebGLContext'
+} from '../demoSwitcher'
+import { getWebGLContext } from '../getWebGLContext'
 
 export const runOnMainThread: ExecutionStrategyStart = ({
   canvasElement,

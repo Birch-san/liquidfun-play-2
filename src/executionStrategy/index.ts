@@ -1,9 +1,4 @@
-import type { Demo } from '../../common/protocol'
-
-export enum ExecutionStrategyType {
-  OffloadToWorker = 'OffloadToWorker',
-  RunOnMainThread = 'RunOnMainThread'
-}
+import type { Demo } from '../protocol'
 
 export type ChangeDemo = (demo: Demo) => void
 export type ExecutionStrategyDestroy = () => void

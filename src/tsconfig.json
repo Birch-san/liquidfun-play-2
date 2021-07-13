@@ -1,6 +1,7 @@
 {
   "extends": "@tsconfig/svelte/tsconfig.json",
   "compilerOptions": {
+    "composite": true,
     "lib": ["esnext", "dom"],
     "module": "esnext",
     "target": "esnext",
@@ -18,9 +19,5 @@
     "strict": true,
     "skipLibCheck": false,
     "isolatedModules": true
-  },
-  "references": [
-    { "path": "../worker" },
-    { "path": "../common" }
-  ]
+  }
 }

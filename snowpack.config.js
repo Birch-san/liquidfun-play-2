@@ -10,7 +10,7 @@ module.exports = {
   },
   plugins: [
     '@snowpack/plugin-svelte',
-    ['@snowpack/plugin-typescript', { args: '--project ./src/main' }],
+    ['@snowpack/plugin-typescript', { args: '--project ./src' }],
     ['@efox/snowpack-plugin-webpack5', {
       /** @param {import("webpack").Configuration } config */
       extendConfig: (config) => {

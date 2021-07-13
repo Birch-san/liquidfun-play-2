@@ -1,4 +1,4 @@
-import { GetPixelsPerMeter, MutateMatrix } from '../onContext'
+import type { GetPixelsPerMeter, MutateMatrix } from '../onContext'
 
 export type DestroyDemo = () => void
 export type WorldStep = (intervalMs: number) => void
