@@ -3,20 +3,24 @@
   import { assert } from './assert'
   import { Demo } from './protocol'
   import { getWebGLContext } from './getWebGLContext'
+  import type { Draw, OnContextParams } from './onContext'
   import { onContext } from './onContext'
   import {
-    shouldRun,
-    mainLoop,
     getDrawBuffer,
     flushDrawBuffer,
+    mainLoop as physics,
     mutateMatrix,
-    pixelsPerMeterGetter,
+    pixelsPerMeterGetter as getPixelsPerMeter,
     switchDemo,
     setClearCanvas
   } from './demoSwitcher'
+  import { doLoop } from './loop'
 
   const width = 800
   const height = 700
+
+  let avgFrameDurationMs: number = 0
+  let avgFrameRate: number = 60
 
   let canvasElement: HTMLCanvasElement | undefined
 
@@ -31,22 +35,25 @@
   
   onMount(() => {
     assert(canvasElement)
+    switchDemo(demo)
     const gl: WebGL2RenderingContext | WebGLRenderingContext = getWebGLContext(canvasElement)
     setClearCanvas(() => gl.clear(gl.COLOR_BUFFER_BIT))
-    const stopMainLoop = onContext(
+    const onContextParams: OnContextParams = {
       gl,
-      shouldRun,
-      mainLoop,
       getDrawBuffer,
       flushDrawBuffer,
       mutateMatrix,
-      pixelsPerMeterGetter
-    )
-    switchDemo(demo)
-
-    return () => {
-      stopMainLoop()
+      getPixelsPerMeter
     }
+    const draw: Draw = onContext(onContextParams)
+
+    return doLoop({
+      draw,
+      physics,
+      onStats: (stats) => {
+        ({ avgFrameDurationMs, avgFrameRate } = stats)
+      }
+    })
   })
 </script>
   
@@ -69,6 +76,12 @@
     <p>Here's a GIF of what it's <em>supposed</em> to look like:</p>
     <img src="https://birchlabs.co.uk/box2d-wasm-liquidfun/liquidfun.gif" width="350px" height="306">
   {:else}
+    <pre>
+      Average frame duration (ms):
+      {avgFrameDurationMs.toFixed(2)}
+      Average frame rate (fps):
+      {Math.floor(avgFrameRate)}
+    </pre>
     <canvas bind:this={canvasElement} width={width} height={height}></canvas>
     <fieldset>
       <legend>Demo</legend>

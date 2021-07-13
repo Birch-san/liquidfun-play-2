@@ -1,8 +1,10 @@
-import type { MutateMatrix, GetDrawBuffer, MainLoop, ShouldRun, GetPixelsPerMeter } from './onContext'
+import type { MainLoop } from './loop'
+import type { MutateMatrix, GetDrawBuffer, GetPixelsPerMeter } from './onContext'
 import { DrawBuffer, drawBuffer, flushDrawBuffer } from './debugDraw'
 import type { DestroyDemo, WorldStep } from './demo'
 import { Demo } from './protocol'
 import type { mat3 } from 'gl-matrix'
+import { frameLimit } from './loop'
 
 type ClearCanvas = () => void
 
@@ -14,10 +16,6 @@ let matrixMutator: MutateMatrix | undefined
 let getPixelsPerMeter: GetPixelsPerMeter | undefined
 
 const { debugDraw } = await import('./debugDraw')
-
-const frameLimit = 60
-const frameIntervalMs = 1 / frameLimit * 1000
-const minDrawIntervalMs = frameIntervalMs / 2
 
 export const switchDemo = async (proposedDemo: Demo): Promise<void> => {
   destroyDemo?.()
@@ -45,9 +43,6 @@ export const switchDemo = async (proposedDemo: Demo): Promise<void> => {
       throw new Error(`Unsupported demo type '${proposedDemo as string}'`)
   }
 }
-
-export const shouldRun: ShouldRun = (intervalMs: number): boolean =>
-  intervalMs > minDrawIntervalMs && world !== undefined
 
 export const mainLoop: MainLoop = (intervalMs: number): void =>
   worldStep?.(intervalMs)

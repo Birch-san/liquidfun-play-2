@@ -22,23 +22,27 @@ const shaderSources = {
   }
 }
 
-export type ShouldRun = (intervalMs: number) => boolean
-export type MainLoop = (intervalMs: number) => void
 export type GetDrawBuffer = () => DrawBuffer
 export type FlushDrawBuffer = () => void
 export type MutateMatrix = (out: mat3, canvasWidth: number, canvasHeight: number) => void
 export type GetPixelsPerMeter = () => number
-export type StopMainLoop = () => void
+export type Draw = () => void
 
-export const onContext = (
-  gl: WebGLRenderingContext | WebGL2RenderingContext,
-  shouldRun: ShouldRun,
-  mainLoop: MainLoop,
-  getDrawBuffer: GetDrawBuffer,
-  flushDrawBuffer: FlushDrawBuffer,
-  mutateMatrix: MutateMatrix,
+export interface OnContextParams {
+  gl: WebGLRenderingContext | WebGL2RenderingContext
+  getDrawBuffer: GetDrawBuffer
+  flushDrawBuffer: FlushDrawBuffer
+  mutateMatrix: MutateMatrix
   getPixelsPerMeter: GetPixelsPerMeter
-): StopMainLoop => {
+}
+
+export const onContext = ({
+  gl,
+  getDrawBuffer,
+  flushDrawBuffer,
+  mutateMatrix,
+  getPixelsPerMeter
+}: OnContextParams): Draw => {
   const compile = (type: GLenum, shaderName: string, shaderSource: string): WebGLShader => {
     const shader: WebGLShader | null = gl.createShader(type)
     if (shader === null) {
@@ -180,7 +184,7 @@ export const onContext = (
   const circleEdgeColor: vec4 = vec4.fromValues(0, 0, 0, 0.2)
   const circleEdgeThicknessPx = 1
 
-  const draw = (): void => {
+  const draw: Draw = (): void => {
     const drawBuffer: DrawBuffer = getDrawBuffer()
     const { boxes, lineVertices, circles } = drawBuffer
 
@@ -250,23 +254,5 @@ export const onContext = (
     flushDrawBuffer()
     growableQuadIndexArray.length = 0
   }
-
-  let lastRenderMs: number | undefined
-
-  const render: FrameRequestCallback = (nowMs: number): void => {
-    if (lastRenderMs === undefined) {
-      lastRenderMs = nowMs
-    }
-    const intervalMs = nowMs - lastRenderMs
-    if (shouldRun(intervalMs)) {
-      lastRenderMs = nowMs
-      mainLoop(intervalMs)
-      draw()
-    }
-    animationFrameHandle = requestAnimationFrame(render)
-  }
-  let animationFrameHandle: number = requestAnimationFrame(render)
-  return () => {
-    cancelAnimationFrame(animationFrameHandle)
-  }
+  return draw
 }
