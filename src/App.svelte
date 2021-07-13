@@ -2,8 +2,18 @@
   import { onMount } from 'svelte'
   import { assert } from './assert'
   import { Demo } from './protocol'
-  import { runOnMainThread } from './executionStrategy/runOnMainThread'
-  import type { ChangeDemo, ExecutionStrategyDestroy } from './executionStrategy'
+  import { getWebGLContext } from './getWebGLContext'
+  import { onContext } from './onContext'
+  import {
+    shouldRun,
+    mainLoop,
+    getDrawBuffer,
+    flushDrawBuffer,
+    mutateMatrix,
+    pixelsPerMeterGetter,
+    switchDemo,
+    setClearCanvas
+  } from './demoSwitcher'
 
   const width = 800
   const height = 700
@@ -12,26 +22,30 @@
 
   let demo: Demo = Demo.WaveMachine
 
-  let destroy: ExecutionStrategyDestroy | undefined
-  let changeDemo: ChangeDemo | undefined
   const onChangeDemo = (event: Event): void => {
     event.stopPropagation()
-    changeDemo?.(demo)
+    switchDemo(demo)
   }
 
   let fatalError: string | undefined
   
   onMount(() => {
-    assert(canvasElement);
-    ({ changeDemo, destroy } = runOnMainThread({
-      setFatalError: (message: string) => {
-        fatalError = message
-      },
-      canvasElement,
-      initialDemo: demo
-    }))
+    assert(canvasElement)
+    const gl: WebGL2RenderingContext | WebGLRenderingContext = getWebGLContext(canvasElement)
+    setClearCanvas(() => gl.clear(gl.COLOR_BUFFER_BIT))
+    const stopMainLoop = onContext(
+      gl,
+      shouldRun,
+      mainLoop,
+      getDrawBuffer,
+      flushDrawBuffer,
+      mutateMatrix,
+      pixelsPerMeterGetter
+    )
+    switchDemo(demo)
+
     return () => {
-      destroy?.()
+      stopMainLoop()
     }
   })
 </script>
