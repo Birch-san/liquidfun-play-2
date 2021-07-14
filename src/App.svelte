@@ -14,13 +14,18 @@
     switchDemo,
     setClearCanvas
   } from './demoSwitcher'
-  import { doLoop } from './loop'
+  import type { StatsType, Stats, OnStatsParams } from './loop'
+  import { doLoop, statsTypes } from './loop'
 
   const width = 800
   const height = 700
 
-  let avgFrameDurationMs: number = 0
-  let avgFrameRate: number = 0
+  // eslint-disable-next-line no-return-assign
+  let statsModel: Record<StatsType, Stats> = statsTypes.reduce<Partial<Record<StatsType, Stats>>>((acc, next) => (acc[next] = {
+    avgFrameDurationMs: 0,
+    avgFrameRate: 0
+    // eslint-disable-next-line no-sequences
+  }, acc), {}) as Record<StatsType, Stats>
 
   let canvasElement: HTMLCanvasElement | undefined
 
@@ -50,8 +55,10 @@
     return doLoop({
       draw,
       physics,
-      onStats: (stats) => {
-        ({ avgFrameDurationMs, avgFrameRate } = stats)
+      onStats: ({ statsType, stats }: OnStatsParams) => {
+        statsModel[statsType] = stats
+        // trigger Svelte's change-detection
+        statsModel = statsModel
       }
     })
   })
@@ -66,6 +73,10 @@
   .fatal-error {
     color: darkred;
   }
+  .perf-tracer {
+    display: inline-block;
+    width: 40%;
+  }
 </style>
   
 <div class="middle-col">
@@ -76,11 +87,19 @@
     <p>Here's a GIF of what it's <em>supposed</em> to look like:</p>
     <img src="https://birchlabs.co.uk/box2d-wasm-liquidfun/liquidfun.gif" width="350px" height="306">
   {:else}
-    <pre>
+    <pre class="perf-tracer">
+      Physics 
       Average frame duration (ms):
-      {avgFrameDurationMs.toFixed(2)}
-      Average frame rate (fps):
-      {Math.floor(avgFrameRate)}
+      {statsModel.physics.avgFrameDurationMs.toFixed(2)}
+      Achievable frame rate (fps):
+      {Math.floor(statsModel.physics.avgFrameRate)}
+    </pre>
+    <pre class="perf-tracer">
+      AnimationFrame
+      Average schedule wait (ms):
+      {statsModel.animationFrame.avgFrameDurationMs.toFixed(2)}
+      Achievable frame rate (fps):
+      {Math.floor(statsModel.animationFrame.avgFrameRate)}
     </pre>
     <canvas bind:this={canvasElement} width={width} height={height}></canvas>
     <fieldset>
