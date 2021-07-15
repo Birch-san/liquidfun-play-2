@@ -13,10 +13,22 @@ const getVertexShaderSource = async (name: string): Promise<string> =>
 
 const shaderSources = {
   vertex: {
+    blob: await getVertexShaderSource('blob'),
+    blobfullscreen: await getVertexShaderSource('blobfullscreen'),
+    color: await getVertexShaderSource('color'),
+    fullscreen: await getVertexShaderSource('fullscreen'),
+    point: await getVertexShaderSource('point'),
+    texture: await getVertexShaderSource('texture'),
     general: await getVertexShaderSource('general'),
     circle: await getVertexShaderSource('circle')
   },
   fragment: {
+    blob: await getFragmentShaderSource('blob'),
+    blobfullscreen: await getFragmentShaderSource('blobfullscreen'),
+    color: await getFragmentShaderSource('color'),
+    fullscreen: await getFragmentShaderSource('fullscreen'),
+    point: await getFragmentShaderSource('point'),
+    texture: await getFragmentShaderSource('texture'),
     general: await getFragmentShaderSource('general'),
     circle: await getFragmentShaderSource('circle')
   }
@@ -36,6 +48,28 @@ export interface OnContextParams {
   getPixelsPerMeter: GetPixelsPerMeter
 }
 
+/*
+ * Some sections of this code pertaining to water shading were ported to TypeScript from
+ * LiquidFun's C++ EyeCandy demo.
+ * https://github.com/google/liquidfun/blob/master/liquidfun/Box2D/EyeCandy/engine.cpp
+ *
+ * Those sections have the following copyright:
+ * Copyright (c) 2013 Google, Inc.
+ *
+ * This software is provided 'as-is', without any express or implied
+ * warranty.  In no event will the authors be held liable for any damages
+ * arising from the use of this software.
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute it
+ * freely, subject to the following restrictions:
+ * 1. The origin of this software must not be misrepresented; you must not
+ * claim that you wrote the original software. If you use this software
+ * in a product, an acknowledgment in the product documentation would be
+ * appreciated but is not required.
+ * 2. Altered source versions must be plainly marked as such, and must not be
+ * misrepresented as being the original software.
+ * 3. This notice may not be removed or altered from any source distribution.
+ */
 export const onContext = ({
   gl,
   getDrawBuffer,
@@ -95,6 +129,12 @@ export const onContext = ({
   }
 
   const programs = {
+    blob: link([compiledShaders.vertex.blob, compiledShaders.fragment.blob]),
+    blobfullscreen: link([compiledShaders.vertex.blobfullscreen, compiledShaders.fragment.blobfullscreen]),
+    color: link([compiledShaders.vertex.color, compiledShaders.fragment.color]),
+    fullscreen: link([compiledShaders.vertex.fullscreen, compiledShaders.fragment.fullscreen]),
+    point: link([compiledShaders.vertex.point, compiledShaders.fragment.point]),
+    texture: link([compiledShaders.vertex.texture, compiledShaders.fragment.texture]),
     general: link([compiledShaders.vertex.general, compiledShaders.fragment.general]),
     circle: link([compiledShaders.vertex.circle, compiledShaders.fragment.circle])
   }
@@ -171,6 +211,30 @@ export const onContext = ({
       ) as { [K in keyof typeof programs]: Locations<T[K]['attrib'], T[K]['uniform']> }
 
   const locations = getLocations({
+    blob: {
+      attrib: [] as const,
+      uniform: [] as const
+    },
+    blobfullscreen: {
+      attrib: [] as const,
+      uniform: [] as const
+    },
+    color: {
+      attrib: [] as const,
+      uniform: [] as const
+    },
+    fullscreen: {
+      attrib: [] as const,
+      uniform: [] as const
+    },
+    point: {
+      attrib: [] as const,
+      uniform: [] as const
+    },
+    texture: {
+      attrib: [] as const,
+      uniform: [] as const
+    },
     general: {
       attrib: ['a_position'] as const,
       uniform: ['u_matrix'] as const
@@ -181,6 +245,300 @@ export const onContext = ({
     }
   })
 
+  const createTexture = (
+    width: number,
+    height: number,
+    pixels: ArrayBufferView | null,
+    clamp: boolean,
+    nearestfiltering: boolean,
+    generatemipmaps: boolean
+  ): WebGLTexture => {
+    const tex: WebGLTexture | null = gl.createTexture()
+    if (tex === null) {
+      throw new Error('Failed to create WebGLFramebuffer')
+    }
+    gl.enable(gl.TEXTURE_2D)
+    gl.bindTexture(gl.TEXTURE_2D, tex)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+    const clval: GLenum = clamp ? gl.CLAMP_TO_EDGE : gl.REPEAT
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, clval)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, clval)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, nearestfiltering ? gl.NEAREST : gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, nearestfiltering
+      ? (generatemipmaps ? gl.NEAREST_MIPMAP_NEAREST : gl.NEAREST)
+      : (generatemipmaps ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR))
+    if (generatemipmaps) {
+      gl.generateMipmap(gl.TEXTURE_2D)
+    }
+    gl.bindTexture(gl.TEXTURE_2D, tex)
+    return tex
+  }
+
+  const saturate = (x: number): number =>
+    Math.max(Math.min(x, 1), 0)
+
+  const smoothstep = (x: number): number => {
+    const y = saturate(x)
+    return y ** 2 * (3 - 2 * y)
+  }
+
+  const quantize = (x: number): number =>
+    saturate(x) * 255
+
+  enum Effect {
+    TemporalBlend,
+    Refraction,
+    Max
+  }
+
+  class jsVec2 {
+    constructor (
+      public x: number,
+      public y: number
+    ) {
+    }
+
+    add (scalar: number): this {
+      this.x += scalar
+      this.y += scalar
+      return this
+    }
+
+    div (scalar: number): this {
+      this.x /= scalar
+      this.y /= scalar
+      return this
+    }
+
+    mul (scalar: number): this {
+      this.x *= scalar
+      this.y *= scalar
+      return this
+    }
+
+    sub (scalar: number): this {
+      this.x -= scalar
+      this.y -= scalar
+      return this
+    }
+
+    lengthSquared (): number {
+      return this.x ** 2 + this.y ** 2
+    }
+  }
+
+  class jsVec4 {
+    constructor (
+      public x: number,
+      public y: number,
+      public z: number,
+      public w: number
+    ) {
+    }
+
+    set (
+      x: number,
+      y: number,
+      z: number,
+      w: number
+    ): this {
+      this.x = x
+      this.y = y
+      this.z = z
+      this.w = w
+      return this
+    }
+  }
+
+  const precomputeBlobTexture = (effect: Effect): WebGLTexture => {
+    // This texture creates pre-computed parameters for each particle point
+    // sprite to be blended into an FBO to later be used in the actual full
+    // screen water shader.
+    // We want to compute information that will allow us to have a blended
+    // normal. This is tricky for a 2 reasons:
+    // 1) Because we generally don't have floating point FBO's, we have to make
+    //    sure to fit all the values within an 8-bit range, while taking into
+    //    account up to 6 or so particles can blend for any pixel, which gives
+    //    serious precision issues.
+    // 2) To make the particles appear to smoothly transition into eachother
+    //    as if they were a single liquid under additive blending we have to
+    //    choose our math carefully.
+    // For this reason, we cannot simply blend normals. Instead, we blend a
+    // a directional vector and a fluid height each in their own way, and
+    // reconstruct the normal later. This is also useful for the refraction
+    // term.
+    // Note: lower gives aliasing effects on high res
+    // screens, higher degrades performance because of
+    // texture cache.
+    const TSIZE = 64
+    const tex = new Uint8ClampedArray(TSIZE ** 2 * 4)
+    for (let y = 0; y < TSIZE; y++) {
+      for (let x = 0; x < TSIZE; x++) {
+        // define our cone
+        const xy: jsVec2 = new jsVec2(x, y).add(0.5).div(TSIZE / 2).sub(1)
+        const distsqr: number = xy.lengthSquared()
+        const falloff = 1 - distsqr
+        const smooth = smoothstep(falloff) // outside circle drops to 0
+
+        // the more we scale the distance for exp(), the more fluid the
+        // transition looks, but also the more precision problems we cause on
+        // the rim. 4 is a good tradeoff.
+        // exp() works better than linear/smoothstep/hemisphere because it
+        // makes the fluid transition nicer (less visible transition
+        // boundaries).
+        const waterheight = Math.exp(distsqr * -4)
+
+        // this value represents the 0 point for the directional components
+        // it needs to be fairly low to make sure we can fit many blended
+        // samples (this depends on how "particlesize" for point.vs is
+        // computed, the larger, the more overlapping particles, and we can't
+        // allow them saturate to 1).
+        // But, the lower, the more precision problems you get.
+        const bias = 0.075
+
+        // the w component effectively holds the number of particles that were
+        // blended to this pixel, i.e. the total bias.
+        // xy is the directional vector. we reduce the magnitude of this vector
+        // by a smooth version of the distance from the center to reduce its
+        // contribution to the blend, this works well because vectors at the
+        // edges tend to have opposed directions, this keeps it smooth and sort
+        // of normalizes (since longer vectors get reduced more) at the cost of
+        // precision at the far ends.
+        // The z component is the fluid height, and unlike the xy is meant to
+        // saturate under blending.
+        const falloff_min = 0.05
+        const out = new jsVec4(0, 0, 0, 0)
+        if (falloff > falloff_min) {
+          if (effect === Effect.Refraction) {
+            const { x, y } = xy
+            const dxy = new jsVec2(x, y).mul(0.5 * smooth).add(bias)
+            out.set(dxy.x, dxy.y, waterheight, bias)
+          } else {
+            out.set(
+              0.05 * smooth,
+              0.08 * smooth,
+              0.30 * smooth,
+              1
+            )
+          }
+        }
+        tex.set(
+          new Uint8ClampedArray([
+            quantize(out.x),
+            quantize(out.y),
+            quantize(out.z),
+            quantize(out.w)
+          ]),
+          y * TSIZE + x
+        )
+        // See fullscreen.glslf (starting at vec4 samp) for how these values
+        // are used.
+      }
+    }
+
+    return createTexture(TSIZE, TSIZE, tex, true, false, false)
+  }
+
+  const drawUnitQuad = (sh): void => {
+    const unitquad = new Float32Array([
+      -1, 1,
+      -1, -1,
+      1, -1,
+      1, 1
+    ])
+    gl.vertexAttribPointer(sh.position_handle, 2, gl.FLOAT,
+                          false, 0, unitquad)
+    gl.enableVertexAttribArray(sh.position_handle)
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, 4)
+    gl.disableVertexAttribArray(sh.position_handle)
+  }
+
+  // is this related to pixelsPerMeter?
+  const scale = gl.canvas.height / 12
+
+  const normalsRefractEffect = (time: number) => {
+    // first pass: render particles to fbo_, according to point.ps
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
+
+    gl.clearColor(0, 0, 0, 0)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.ONE, gl.ONE)
+
+    sh_point_.SetWorld(scale, gl.canvas.width, gl.canvas.height)
+    gl.bindTexture(gl.TEXTURE_2D, blobNormalTex)
+    DrawParticleBuffers(sh_point_)
+
+    gl.disable(gl.BLEND)
+
+    // second pass: render fbo_ as one quad to screen, apply final graphical
+    // effects (see fulls.ps)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
+    sh_fulls_.SetWorld(1, 1, 1)
+    const angle: number = Math.sin(time) - Math.PI / 2
+    const lightdir = new Float32Array([Math.cos(angle), Math.sin(angle), 1])
+    lightdir.Normalize()
+    sh_fulls_.Set3f('lightdir', lightdir)
+    gl.bindTexture(gl.TEXTURE_2D, fboTex)
+    gl.activeTexture(gl.TEXTURE1)
+    // gl.bindTexture(gl.TEXTURE_2D, background_tex_)
+    // gl.activeTexture(gl.TEXTURE0)
+    // DrawUnitQuad(sh_fulls_)
+    gl.bindTexture(gl.TEXTURE_2D, null)
+  }
+
+  const temporalBlendEffect = (framedelta: number): void => {
+    // first pass:
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
+    // First, darken what's already in the framebuffer gently.
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.ZERO, gl.SRC_ALPHA)
+    sh_color_.SetWorld(1, 1, 1)
+    // Set the alpha to be the darkening multiplier.
+    // Note how this value is hardcoded to look good assuming the device
+    // hits 60fps or so, it was originally a value derived from frametime,
+    // but then variances in frametime would give the effect of whole screen
+    // "flickers" as things got instantly darker/brighter.
+    sh_color_.Set4f('color', new jsVec4(0, 0, 0, 0.85))
+    DrawUnitQuad(sh_color_)
+
+    // Then render the particles on top of that.
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR)
+
+    sh_blob_.SetWorld(scale, gl.canvas.width, gl.canvas.height)
+    gl.bindTexture(gl.TEXTURE_2D, blobTemporalTex)
+    DrawParticleBuffers(sh_blob_)
+
+    gl.disable(gl.BLEND)
+
+    // second pass:
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
+    sh_blobfs_.SetWorld(1, 1, 1)
+    gl.bindTexture(gl.TEXTURE_2D, fboTex)
+    gl.activeTexture(gl.TEXTURE1)
+    // gl.bindTexture(gl.TEXTURE_2D, background_tex_)
+    // gl.activeTexture(gl.TEXTURE0)
+    // DrawUnitQuad(sh_blobfs_)
+    gl.bindTexture(gl.TEXTURE_2D, 0)
+  }
+
+  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
+  const fbo: WebGLFramebuffer | null = gl.createFramebuffer()
+  if (fbo === null) {
+    throw new Error('Failed to create WebGLFramebuffer')
+  }
+
+  const fboTex: WebGLTexture = createTexture(gl.canvas.width, gl.canvas.height, null, true, true, false)
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fboTex, 0)
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
+  const blobNormalTex = precomputeBlobTexture(Effect.Refraction)
+  const blobTemporalTex = precomputeBlobTexture(Effect.TemporalBlend)
+
   const circleEdgeColor: vec4 = vec4.fromValues(0, 0, 0, 0.2)
   const circleEdgeThicknessPx = 1
 
@@ -189,6 +547,10 @@ export const onContext = ({
     const { boxes, lineVertices, circles } = drawBuffer
 
     gl.useProgram(programs.general)
+    gl.disable(gl.DEPTH_TEST)
+    gl.depthMask(false)
+    gl.disable(gl.CULL_FACE)
+
     const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, boxes.getView())
 
     const quadVertices = 4
