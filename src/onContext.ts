@@ -213,15 +213,15 @@ export const onContext = ({
   const locations = getLocations({
     blob: {
       attrib: [] as const,
-      uniform: [] as const
+      uniform: ['extents', 'scale'] as const
     },
     blobfullscreen: {
       attrib: [] as const,
       uniform: [] as const
     },
     color: {
-      attrib: [] as const,
-      uniform: [] as const
+      attrib: ['position'] as const,
+      uniform: ['extents', 'color'] as const
     },
     fullscreen: {
       attrib: [] as const,
@@ -495,19 +495,27 @@ export const onContext = ({
     // First, darken what's already in the framebuffer gently.
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.ZERO, gl.SRC_ALPHA)
-    sh_color_.SetWorld(1, 1, 1)
+
+    gl.useProgram(programs.color)
+    // gl.uniform2f(locations.color.uniform.extents, 1, 1)
+    // gl.uniform1f(scale_handle, 1)
+    gl.uniform2f(locations.color.uniform.extents, 1, 1)
     // Set the alpha to be the darkening multiplier.
     // Note how this value is hardcoded to look good assuming the device
     // hits 60fps or so, it was originally a value derived from frametime,
     // but then variances in frametime would give the effect of whole screen
     // "flickers" as things got instantly darker/brighter.
-    sh_color_.Set4f('color', new jsVec4(0, 0, 0, 0.85))
+    // review this
+    gl.uniform4fv(locations.color.uniform.color, new Float32Array([0, 0, 0, 0.85]))
+    // sh_color_.Set4f('color', new jsVec4(0, 0, 0, 0.85))
     DrawUnitQuad(sh_color_)
 
     // Then render the particles on top of that.
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR)
 
-    sh_blob_.SetWorld(scale, gl.canvas.width, gl.canvas.height)
+    gl.useProgram(programs.blob)
+    gl.uniform2f(locations.blob.uniform.extents, gl.canvas.width / scale, gl.canvas.height / scale)
+    gl.uniform1f(locations.blob.uniform.scale, scale)
     gl.bindTexture(gl.TEXTURE_2D, blobTemporalTex)
     DrawParticleBuffers(sh_blob_)
 
