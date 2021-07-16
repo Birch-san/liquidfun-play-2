@@ -263,7 +263,8 @@ export const onContext = ({
     if (tex === null) {
       throw new Error('Failed to create WebGLFramebuffer')
     }
-    gl.enable(gl.TEXTURE_2D)
+    // invalid capability
+    // gl.enable(gl.TEXTURE_2D)
     gl.bindTexture(gl.TEXTURE_2D, tex)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
     const clval: GLenum = clamp ? gl.CLAMP_TO_EDGE : gl.REPEAT
@@ -615,7 +616,7 @@ export const onContext = ({
     // gl.bindTexture(gl.TEXTURE_2D, background_tex_)
     // gl.activeTexture(gl.TEXTURE0)
     drawUnitQuad(locations.blobfullscreen.attrib.position)
-    gl.bindTexture(gl.TEXTURE_2D, 0)
+    gl.bindTexture(gl.TEXTURE_2D, null)
   }
 
   const noEffect = (circles: CircleBuffers, circleBuffer: WebGLBuffer): void => {
