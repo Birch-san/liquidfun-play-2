@@ -212,11 +212,11 @@ export const onContext = ({
 
   const locations = getLocations({
     blob: {
-      attrib: [] as const,
+      attrib: ['position', 'particlesize'] as const,
       uniform: ['extents', 'scale'] as const
     },
     blobfullscreen: {
-      attrib: [] as const,
+      attrib: ['position'] as const,
       uniform: [] as const
     },
     color: {
@@ -224,12 +224,12 @@ export const onContext = ({
       uniform: ['extents', 'color'] as const
     },
     fullscreen: {
-      attrib: [] as const,
-      uniform: [] as const
+      attrib: ['position'] as const,
+      uniform: ['lightdir'] as const
     },
     point: {
-      attrib: [] as const,
-      uniform: [] as const
+      attrib: ['position', 'particlesize'] as const,
+      uniform: ['extents', 'scale'] as const
     },
     texture: {
       attrib: [] as const,
@@ -439,18 +439,46 @@ export const onContext = ({
     return createTexture(TSIZE, TSIZE, tex, true, false, false)
   }
 
-  const drawUnitQuad = (sh): void => {
+  const drawUnitQuad = (positionHandle: number): void => {
     const unitquad = new Float32Array([
       -1, 1,
       -1, -1,
       1, -1,
       1, 1
     ])
-    gl.vertexAttribPointer(sh.position_handle, 2, gl.FLOAT,
-                          false, 0, unitquad)
-    gl.enableVertexAttribArray(sh.position_handle)
+    const buf: WebGLBuffer | null = gl.createBuffer()
+    if (buf === null) {
+      throw new Error('Failed to create WebGLBuffer')
+    }
+    // these are a guess
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf)
+    gl.bufferData(gl.ARRAY_BUFFER, unitquad, gl.STATIC_DRAW)
+    // probably stride could be Float32Array.BYTES_PER_ELEMENT or maybe multiply by 2 or by unitquad.length
+    gl.vertexAttribPointer(positionHandle, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(positionHandle)
     gl.drawArrays(gl.TRIANGLE_FAN, 0, 4)
-    gl.disableVertexAttribArray(sh.position_handle)
+    gl.disableVertexAttribArray(positionHandle)
+  }
+
+  const drawParticleBuffers = (
+    positionHandle: number,
+    shParticleSizeHandle: number,
+    blobParticleSizeHandle: number
+  ): void => {
+    gl.vertexAttribPointer(positionHandle, 2, gl.FLOAT,
+      false, 0,
+      &particleSystem_->GetPositionBuffer()->x)
+    gl.enableVertexAttribArray(positionHandle)
+
+    gl.vertexAttribPointer(shParticleSizeHandle, 1, gl.FLOAT,
+          false, 0, &particle_sizes_[0])
+    // is this mismatched particle size handle a mistake?
+    gl.enableVertexAttribArray(blobParticleSizeHandle)
+
+    gl.drawArrays(gl.POINTS, 0, particleSystem_->GetParticleCount())
+
+    gl.disableVertexAttribArray(positionHandle)
+    gl.disableVertexAttribArray(shParticleSizeHandle)
   }
 
   // is this related to pixelsPerMeter?
@@ -466,9 +494,15 @@ export const onContext = ({
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.ONE, gl.ONE)
 
-    sh_point_.SetWorld(scale, gl.canvas.width, gl.canvas.height)
+    gl.useProgram(programs.point)
+    gl.uniform2f(locations.point.uniform.extents, gl.canvas.width / scale, gl.canvas.height / scale)
+    gl.uniform1f(locations.point.uniform.scale, scale)
     gl.bindTexture(gl.TEXTURE_2D, blobNormalTex)
-    DrawParticleBuffers(sh_point_)
+    drawParticleBuffers(
+      locations.point.attrib.position,
+      locations.point.attrib.particlesize,
+      locations.blob.attrib.particlesize
+    )
 
     gl.disable(gl.BLEND)
 
@@ -476,11 +510,12 @@ export const onContext = ({
     // effects (see fulls.ps)
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 
-    sh_fulls_.SetWorld(1, 1, 1)
+    gl.useProgram(programs.fullscreen)
     const angle: number = Math.sin(time) - Math.PI / 2
     const lightdir = new Float32Array([Math.cos(angle), Math.sin(angle), 1])
+    // TODO: mutate lightdir accordingly before uniform3fv call
     lightdir.Normalize()
-    sh_fulls_.Set3f('lightdir', lightdir)
+    gl.uniform3fv(locations.fullscreen.uniform.lightdir, lightdir)
     gl.bindTexture(gl.TEXTURE_2D, fboTex)
     gl.activeTexture(gl.TEXTURE1)
     // gl.bindTexture(gl.TEXTURE_2D, background_tex_)
@@ -508,7 +543,7 @@ export const onContext = ({
     // review this
     gl.uniform4fv(locations.color.uniform.color, new Float32Array([0, 0, 0, 0.85]))
     // sh_color_.Set4f('color', new jsVec4(0, 0, 0, 0.85))
-    DrawUnitQuad(sh_color_)
+    drawUnitQuad(locations.color.attrib.position)
 
     // Then render the particles on top of that.
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR)
@@ -517,19 +552,24 @@ export const onContext = ({
     gl.uniform2f(locations.blob.uniform.extents, gl.canvas.width / scale, gl.canvas.height / scale)
     gl.uniform1f(locations.blob.uniform.scale, scale)
     gl.bindTexture(gl.TEXTURE_2D, blobTemporalTex)
-    DrawParticleBuffers(sh_blob_)
+    drawParticleBuffers(
+      locations.blob.attrib.position,
+      locations.blob.attrib.particlesize,
+      locations.blob.attrib.particlesize
+    )
 
     gl.disable(gl.BLEND)
 
     // second pass:
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 
-    sh_blobfs_.SetWorld(1, 1, 1)
+    // sh_blobfs.SetWorld(1, 1, 1)
+    gl.useProgram(programs.blobfullscreen)
     gl.bindTexture(gl.TEXTURE_2D, fboTex)
     gl.activeTexture(gl.TEXTURE1)
     // gl.bindTexture(gl.TEXTURE_2D, background_tex_)
     // gl.activeTexture(gl.TEXTURE0)
-    // DrawUnitQuad(sh_blobfs_)
+    drawUnitQuad(locations.blobfullscreen.attrib.position)
     gl.bindTexture(gl.TEXTURE_2D, 0)
   }
 
