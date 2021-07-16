@@ -120,5 +120,17 @@ export class GrowableVec2Array extends GrowableTypedArray<Float32Array> {
     this.length++
   }
 }
+
+export class GrowableRadiusArray extends GrowableTypedArray<Float32Array> {
+  constructor () {
+    super(Float32Array, 1)
+  }
+
+  fill (radius: number): void {
+    this.buffer.fill(radius)
+  }
+}
+
 export const growableVec2Array = new GrowableVec2Array()
 export const circleCentreArray = new GrowableVec2Array()
+export const circleRadiusArray = new GrowableRadiusArray()

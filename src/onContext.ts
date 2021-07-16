@@ -490,27 +490,15 @@ export const onContext = ({
     positionHandle: number,
     particleSizeHandle: number,
     blobParticleSizeHandle: number,
-    particlePositions: BufferSource,
-    particleSizes: BufferSource,
+    particlePositions: WebGLBuffer,
+    particleSizes: WebGLBuffer,
     particleCount: number
   ): void => {
-    const particlePositionBuf: WebGLBuffer | null = gl.createBuffer()
-    if (particlePositionBuf === null) {
-      throw new Error('Failed to create WebGLBuffer')
-    }
-    // these are a guess
-    gl.bindBuffer(gl.ARRAY_BUFFER, particlePositionBuf)
-    gl.bufferData(gl.ARRAY_BUFFER, particlePositions, gl.STATIC_DRAW)
+    gl.bindBuffer(gl.ARRAY_BUFFER, particlePositions)
     gl.vertexAttribPointer(positionHandle, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(positionHandle)
 
-    const particleSizeBuf: WebGLBuffer | null = gl.createBuffer()
-    if (particleSizeBuf === null) {
-      throw new Error('Failed to create WebGLBuffer')
-    }
-    // these are a guess
-    gl.bindBuffer(gl.ARRAY_BUFFER, particleSizeBuf)
-    gl.bufferData(gl.ARRAY_BUFFER, particleSizes, gl.STATIC_DRAW)
+    gl.bindBuffer(gl.ARRAY_BUFFER, particleSizes)
     gl.vertexAttribPointer(particleSizeHandle, 1, gl.FLOAT, false, 0, 0)
     // is this mismatched particle size handle a mistake?
     gl.enableVertexAttribArray(blobParticleSizeHandle)
@@ -526,8 +514,8 @@ export const onContext = ({
 
   const normalsRefractEffect = (
     time: number,
-    particlePositions: BufferSource,
-    particleSizes: BufferSource,
+    particlePositions: WebGLBuffer,
+    particleSizes: WebGLBuffer,
     particleCount: number
   ): void => {
     // first pass: render particles to fbo_, according to point.ps
@@ -575,8 +563,8 @@ export const onContext = ({
   }
 
   const temporalBlendEffect = (
-    particlePositions: BufferSource,
-    particleSizes: BufferSource,
+    particlePositions: WebGLBuffer,
+    particleSizes: WebGLBuffer,
     particleCount: number
   ): void => {
     // first pass:
@@ -634,7 +622,7 @@ export const onContext = ({
     const pixelsPerMeter = getPixelsPerMeter()
     const canvasToClipSpaceRatio = Math.max(mat[0], -mat[4])
     gl.useProgram(programs.circle)
-    gl.uniform1f(locations.circle.uniform.u_diameter, 2 * circles.radius * pixelsPerMeter * canvasToClipSpaceRatio)
+    gl.uniform1f(locations.circle.uniform.u_diameter, 2 * circles.systemRadius * pixelsPerMeter * canvasToClipSpaceRatio)
     gl.uniform1f(locations.circle.uniform.u_edge_size, circleEdgeThicknessPx * canvasToClipSpaceRatio)
     gl.uniform4fv(locations.circle.uniform.u_edge_color, circleEdgeColor)
     gl.uniform4fv(locations.circle.uniform.u_color, circles.color)
@@ -696,6 +684,7 @@ export const onContext = ({
     const lineBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, lineVertices.getView())
 
     const circleBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, circles.centres.getView())
+    const circleRadiusBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, circles.radii.getView())
 
     updateMatrix()
     gl.uniformMatrix3fv(locations.general.uniform.u_matrix, false, mat)
@@ -725,10 +714,19 @@ export const onContext = ({
     if (circles.centres.length > 0) {
       switch (effect) {
         case Effect.TemporalBlend:
-          temporalBlendEffect()
+          temporalBlendEffect(
+            circleBuffer,
+            circleRadiusBuffer,
+            circles.centres.length
+          )
           break
         case Effect.Refraction:
-          normalsRefractEffect(totalMs)
+          normalsRefractEffect(
+            totalMs,
+            circleBuffer,
+            circleRadiusBuffer,
+            circles.centres.length
+          )
           break
         case Effect.None:
           noEffect(circles, circleBuffer)
