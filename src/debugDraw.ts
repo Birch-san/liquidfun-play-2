@@ -24,13 +24,15 @@ const DrawSolidCircle: Box2D.JSDraw['DrawSolidCircle'] =
   const axis: Box2D.b2Vec2 = wrapPointer(axis_p, b2Vec2)
 }
 
+export interface CircleBuffers {
+  centres: GrowableVec2Array
+  radius: number
+  color: Float32Array
+}
+
 export interface DrawBuffer {
   boxes: GrowableQuadArray
-  circles: {
-    centres: GrowableVec2Array
-    radius: number
-    color: Float32Array
-  }
+  circles: CircleBuffers
   lineVertices: GrowableVec2Array
 }
 export const drawBuffer: DrawBuffer = {

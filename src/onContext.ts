@@ -1,5 +1,5 @@
 import { growableQuadIndexArray } from './growableTypedArray'
-import type { DrawBuffer } from './debugDraw'
+import type { CircleBuffers, DrawBuffer } from './debugDraw'
 import { mat3, vec4 } from 'gl-matrix'
 
 const getShaderSource = async (name: string): Promise<string> => {
@@ -38,7 +38,7 @@ export type GetDrawBuffer = () => DrawBuffer
 export type FlushDrawBuffer = () => void
 export type MutateMatrix = (out: mat3, canvasWidth: number, canvasHeight: number) => void
 export type GetPixelsPerMeter = () => number
-export type Draw = () => void
+export type Draw = (frameDeltaMs: number) => void
 
 export interface OnContextParams {
   gl: WebGLRenderingContext | WebGL2RenderingContext
@@ -288,7 +288,7 @@ export const onContext = ({
   enum Effect {
     TemporalBlend,
     Refraction,
-    Max
+    None
   }
 
   class jsVec2 {
@@ -324,6 +324,32 @@ export const onContext = ({
 
     lengthSquared (): number {
       return this.x ** 2 + this.y ** 2
+    }
+  }
+
+  class jsVec3 {
+    constructor (
+      public x: number,
+      public y: number,
+      public z: number
+    ) {
+    }
+
+    length (): number {
+      return Math.sqrt(this.x ** 2 + this.y ** 2 + this.z ** 2)
+    }
+
+    normalize (): number {
+      const length = this.length()
+      if (length < Number.EPSILON) {
+        return 0
+      }
+      const invLength = 1 / length
+      this.x *= invLength
+      this.y *= invLength
+      this.z *= invLength
+
+      return length
     }
   }
 
@@ -462,29 +488,48 @@ export const onContext = ({
 
   const drawParticleBuffers = (
     positionHandle: number,
-    shParticleSizeHandle: number,
-    blobParticleSizeHandle: number
+    particleSizeHandle: number,
+    blobParticleSizeHandle: number,
+    particlePositions: BufferSource,
+    particleSizes: BufferSource,
+    particleCount: number
   ): void => {
-    gl.vertexAttribPointer(positionHandle, 2, gl.FLOAT,
-      false, 0,
-      &particleSystem_->GetPositionBuffer()->x)
+    const particlePositionBuf: WebGLBuffer | null = gl.createBuffer()
+    if (particlePositionBuf === null) {
+      throw new Error('Failed to create WebGLBuffer')
+    }
+    // these are a guess
+    gl.bindBuffer(gl.ARRAY_BUFFER, particlePositionBuf)
+    gl.bufferData(gl.ARRAY_BUFFER, particlePositions, gl.STATIC_DRAW)
+    gl.vertexAttribPointer(positionHandle, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(positionHandle)
 
-    gl.vertexAttribPointer(shParticleSizeHandle, 1, gl.FLOAT,
-          false, 0, &particle_sizes_[0])
+    const particleSizeBuf: WebGLBuffer | null = gl.createBuffer()
+    if (particleSizeBuf === null) {
+      throw new Error('Failed to create WebGLBuffer')
+    }
+    // these are a guess
+    gl.bindBuffer(gl.ARRAY_BUFFER, particleSizeBuf)
+    gl.bufferData(gl.ARRAY_BUFFER, particleSizes, gl.STATIC_DRAW)
+    gl.vertexAttribPointer(particleSizeHandle, 1, gl.FLOAT, false, 0, 0)
     // is this mismatched particle size handle a mistake?
     gl.enableVertexAttribArray(blobParticleSizeHandle)
 
-    gl.drawArrays(gl.POINTS, 0, particleSystem_->GetParticleCount())
+    gl.drawArrays(gl.POINTS, 0, particleCount)
 
     gl.disableVertexAttribArray(positionHandle)
-    gl.disableVertexAttribArray(shParticleSizeHandle)
+    gl.disableVertexAttribArray(particleSizeHandle)
   }
 
   // is this related to pixelsPerMeter?
   const scale = gl.canvas.height / 12
 
-  const normalsRefractEffect = (time: number) => {
+  const normalsRefractEffect = (
+    time: number,
+    particlePositions: BufferSource,
+    particleSizes: BufferSource,
+    particleCount: number
+  ): void => {
     // first pass: render particles to fbo_, according to point.ps
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
 
@@ -501,7 +546,10 @@ export const onContext = ({
     drawParticleBuffers(
       locations.point.attrib.position,
       locations.point.attrib.particlesize,
-      locations.blob.attrib.particlesize
+      locations.blob.attrib.particlesize,
+      particlePositions,
+      particleSizes,
+      particleCount
     )
 
     gl.disable(gl.BLEND)
@@ -511,11 +559,13 @@ export const onContext = ({
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 
     gl.useProgram(programs.fullscreen)
-    const angle: number = Math.sin(time) - Math.PI / 2
-    const lightdir = new Float32Array([Math.cos(angle), Math.sin(angle), 1])
-    // TODO: mutate lightdir accordingly before uniform3fv call
-    lightdir.Normalize()
-    gl.uniform3fv(locations.fullscreen.uniform.lightdir, lightdir)
+    {
+      const angle: number = Math.sin(time) - Math.PI / 2
+      const lightdir = new jsVec3(Math.cos(angle), Math.sin(angle), 1)
+      lightdir.normalize()
+      const { x, y, z } = lightdir
+      gl.uniform3fv(locations.fullscreen.uniform.lightdir, new Float32Array([x, y, z]))
+    }
     gl.bindTexture(gl.TEXTURE_2D, fboTex)
     gl.activeTexture(gl.TEXTURE1)
     // gl.bindTexture(gl.TEXTURE_2D, background_tex_)
@@ -524,7 +574,11 @@ export const onContext = ({
     gl.bindTexture(gl.TEXTURE_2D, null)
   }
 
-  const temporalBlendEffect = (framedelta: number): void => {
+  const temporalBlendEffect = (
+    particlePositions: BufferSource,
+    particleSizes: BufferSource,
+    particleCount: number
+  ): void => {
     // first pass:
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
     // First, darken what's already in the framebuffer gently.
@@ -555,7 +609,10 @@ export const onContext = ({
     drawParticleBuffers(
       locations.blob.attrib.position,
       locations.blob.attrib.particlesize,
-      locations.blob.attrib.particlesize
+      locations.blob.attrib.particlesize,
+      particlePositions,
+      particleSizes,
+      particleCount
     )
 
     gl.disable(gl.BLEND)
@@ -571,6 +628,22 @@ export const onContext = ({
     // gl.activeTexture(gl.TEXTURE0)
     drawUnitQuad(locations.blobfullscreen.attrib.position)
     gl.bindTexture(gl.TEXTURE_2D, 0)
+  }
+
+  const noEffect = (circles: CircleBuffers, circleBuffer: WebGLBuffer): void => {
+    const pixelsPerMeter = getPixelsPerMeter()
+    const canvasToClipSpaceRatio = Math.max(mat[0], -mat[4])
+    gl.useProgram(programs.circle)
+    gl.uniform1f(locations.circle.uniform.u_diameter, 2 * circles.radius * pixelsPerMeter * canvasToClipSpaceRatio)
+    gl.uniform1f(locations.circle.uniform.u_edge_size, circleEdgeThicknessPx * canvasToClipSpaceRatio)
+    gl.uniform4fv(locations.circle.uniform.u_edge_color, circleEdgeColor)
+    gl.uniform4fv(locations.circle.uniform.u_color, circles.color)
+    gl.uniformMatrix3fv(locations.circle.uniform.u_matrix, false, mat)
+    gl.bindBuffer(gl.ARRAY_BUFFER, circleBuffer)
+    gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(locations.general.attrib.a_position)
+    gl.drawArrays(gl.POINTS, 0, circles.centres.length)
+    gl.bindBuffer(gl.ARRAY_BUFFER, null)
   }
 
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
@@ -590,7 +663,11 @@ export const onContext = ({
   const circleEdgeColor: vec4 = vec4.fromValues(0, 0, 0, 0.2)
   const circleEdgeThicknessPx = 1
 
-  const draw: Draw = (): void => {
+  const effect = Effect.None as Effect
+  let totalMs = 0
+
+  const draw: Draw = (frameDeltaMs: number): void => {
+    totalMs += frameDeltaMs
     const drawBuffer: DrawBuffer = getDrawBuffer()
     const { boxes, lineVertices, circles } = drawBuffer
 
@@ -646,19 +723,19 @@ export const onContext = ({
     }
 
     if (circles.centres.length > 0) {
-      const pixelsPerMeter = getPixelsPerMeter()
-      const canvasToClipSpaceRatio = Math.max(mat[0], -mat[4])
-      gl.useProgram(programs.circle)
-      gl.uniform1f(locations.circle.uniform.u_diameter, 2 * circles.radius * pixelsPerMeter * canvasToClipSpaceRatio)
-      gl.uniform1f(locations.circle.uniform.u_edge_size, circleEdgeThicknessPx * canvasToClipSpaceRatio)
-      gl.uniform4fv(locations.circle.uniform.u_edge_color, circleEdgeColor)
-      gl.uniform4fv(locations.circle.uniform.u_color, circles.color)
-      gl.uniformMatrix3fv(locations.circle.uniform.u_matrix, false, mat)
-      gl.bindBuffer(gl.ARRAY_BUFFER, circleBuffer)
-      gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
-      gl.enableVertexAttribArray(locations.general.attrib.a_position)
-      gl.drawArrays(gl.POINTS, 0, circles.centres.length)
-      gl.bindBuffer(gl.ARRAY_BUFFER, null)
+      switch (effect) {
+        case Effect.TemporalBlend:
+          temporalBlendEffect()
+          break
+        case Effect.Refraction:
+          normalsRefractEffect(totalMs)
+          break
+        case Effect.None:
+          noEffect(circles, circleBuffer)
+          break
+        default:
+          throw new Error(`Unsupported Effect '${effect as string}'.`)
+      }
     }
 
     flushDrawBuffer()
