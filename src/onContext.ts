@@ -34,11 +34,17 @@ const shaderSources = {
   }
 }
 
+export enum Effect {
+  TemporalBlend,
+  Refraction,
+  None
+}
+
 export type GetDrawBuffer = () => DrawBuffer
 export type FlushDrawBuffer = () => void
 export type MutateMatrix = (out: mat3, canvasWidth: number, canvasHeight: number) => void
 export type GetPixelsPerMeter = () => number
-export type Draw = (frameDeltaMs: number) => void
+export type Draw = (effect: Effect, frameDeltaMs: number) => void
 
 export interface OnContextParams {
   gl: WebGLRenderingContext | WebGL2RenderingContext
@@ -284,12 +290,6 @@ export const onContext = ({
 
   const quantize = (x: number): number =>
     saturate(x) * 255
-
-  enum Effect {
-    TemporalBlend,
-    Refraction,
-    None
-  }
 
   class jsVec2 {
     constructor (
@@ -651,10 +651,9 @@ export const onContext = ({
   const circleEdgeColor: vec4 = vec4.fromValues(0, 0, 0, 0.2)
   const circleEdgeThicknessPx = 1
 
-  const effect = Effect.None as Effect
   let totalMs = 0
 
-  const draw: Draw = (frameDeltaMs: number): void => {
+  const draw: Draw = (effect: Effect, frameDeltaMs: number): void => {
     totalMs += frameDeltaMs
     const drawBuffer: DrawBuffer = getDrawBuffer()
     const { boxes, lineVertices, circles } = drawBuffer

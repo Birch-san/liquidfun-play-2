@@ -1,4 +1,4 @@
-import type { Draw } from './onContext'
+import type { Draw, Effect } from './onContext'
 
 // export type ShouldRun = (intervalMs: number) => boolean
 export type MainLoop = (intervalMs: number) => void
@@ -30,11 +30,13 @@ export interface Stats {
   avgFrameRate: number
 }
 
+export type GetEffect = () => Effect
 export type OnStats = (stats: OnStatsParams) => void
 export interface DoLoopParams {
   draw: Draw
   physics: MainLoop
   onStats: OnStats
+  getEffect: GetEffect
 }
 // export const doLoop = ({
 //   draw,
@@ -194,7 +196,8 @@ export interface DoLoopParams {
 export const doLoop = ({
   draw,
   physics,
-  onStats
+  onStats,
+  getEffect
 }: DoLoopParams): StopLoop => {
   let renderHandle: number | undefined
   let lastMs: number | undefined
@@ -240,7 +243,7 @@ export const doLoop = ({
       })
     }
 
-    draw()
+    draw(getEffect(), elapsedMs)
     renderHandle = requestAnimationFrame(renderTask)
   }
   renderHandle = requestAnimationFrame(renderTask)

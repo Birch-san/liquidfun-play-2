@@ -4,7 +4,7 @@
   import { Demo } from './protocol'
   import { getWebGLContext } from './getWebGLContext'
   import type { Draw, OnContextParams } from './onContext'
-  import { onContext } from './onContext'
+  import { Effect, onContext } from './onContext'
   import {
     getDrawBuffer,
     flushDrawBuffer,
@@ -30,11 +30,13 @@
   let canvasElement: HTMLCanvasElement | undefined
 
   let demo: Demo = Demo.WaveMachine
-
+  
   const onChangeDemo = (event: Event): void => {
     event.stopPropagation()
     switchDemo(demo)
   }
+
+  let effect = Effect.None
 
   let fatalError: string | undefined
   
@@ -54,6 +56,7 @@
 
     return doLoop({
       draw,
+      getEffect: () => effect,
       physics,
       onStats: ({ statsType, stats }: OnStatsParams) => {
         statsModel[statsType] = stats
@@ -115,6 +118,21 @@
       <label>
         <input type=radio bind:group={demo} value={Demo.None} on:change={onChangeDemo}>
         None
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>Effect</legend>
+      <label>
+        <input type=radio bind:group={effect} value={Effect.None}>
+        None
+      </label>
+      <label>
+        <input type=radio bind:group={effect} value={Effect.Refraction}>
+        Refraction
+      </label>
+      <label>
+        <input type=radio bind:group={effect} value={Effect.TemporalBlend}>
+        Temporal blend
       </label>
     </fieldset>
   {/if}
