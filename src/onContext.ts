@@ -50,6 +50,7 @@ const shaderSources = {
 }
 
 const bgdImage: HTMLImageElement = await getImage('ShimogyoCropped.png')
+// const bgdImage: HTMLImageElement = await getImage('background_s.png')
 
 export enum Effect {
   TemporalBlend,
@@ -313,6 +314,7 @@ export const onContext = ({
       throw new Error('Failed to create WebGLFramebuffer')
     }
     gl.bindTexture(gl.TEXTURE_2D, tex)
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
     gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, srcFormat, srcType, image)
 
     // WebGL1 has different requirements for power of 2 images
@@ -324,9 +326,9 @@ export const onContext = ({
     } else {
       // No, it's not a power of 2. Turn off mips and set
       // wrapping to clamp to edge
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
     }
     gl.bindTexture(gl.TEXTURE_2D, null)
     return tex
