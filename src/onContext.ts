@@ -2,14 +2,29 @@ import { growableQuadIndexArray } from './growableTypedArray'
 import type { CircleBuffers, DrawBuffer } from './debugDraw'
 import { mat3, vec4 } from 'gl-matrix'
 
+const getAssetURL = (asset: string): URL => new URL(`../../${asset}`, import.meta.url)
+
 const getShaderSource = async (name: string): Promise<string> => {
-  const shaderResponse: Response = await fetch(new URL(`../../${name}`, import.meta.url).toString())
+  const shaderResponse: Response = await fetch(getAssetURL(name).toString())
   return await shaderResponse.text()
 }
 const getFragmentShaderSource = async (name: string): Promise<string> =>
   await getShaderSource(`${name}.frag`)
 const getVertexShaderSource = async (name: string): Promise<string> =>
   await getShaderSource(`${name}.vert`)
+
+// eslint-disable-next-line @typescript-eslint/promise-function-async
+const getImage = (name: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => {
+      resolve(image)
+    }
+    image.onerror = () => {
+      reject(new Error(`Failed to download image '${name}'.`))
+    }
+    image.src = getAssetURL(name).toString()
+  })
 
 const shaderSources = {
   vertex: {
@@ -33,6 +48,8 @@ const shaderSources = {
     circle: await getFragmentShaderSource('circle')
   }
 }
+
+const bgdImage: HTMLImageElement = await getImage('ShimogyoCropped.png')
 
 export enum Effect {
   TemporalBlend,
@@ -251,6 +268,9 @@ export const onContext = ({
     }
   })
 
+  const isPowerOf2 = (value: number): boolean =>
+    (value & (value - 1)) === 0
+
   const createTexture = (
     width: number,
     height: number,
@@ -277,9 +297,47 @@ export const onContext = ({
     if (generatemipmaps) {
       gl.generateMipmap(gl.TEXTURE_2D)
     }
-    gl.bindTexture(gl.TEXTURE_2D, tex)
+    gl.bindTexture(gl.TEXTURE_2D, null)
     return tex
   }
+
+  // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Using_textures_in_WebGL
+  const createTextureFromImage = (
+    image: TexImageSource,
+    internalFormat: number,
+    srcFormat: number,
+    srcType: number
+  ): WebGLTexture => {
+    const tex: WebGLTexture | null = gl.createTexture()
+    if (tex === null) {
+      throw new Error('Failed to create WebGLFramebuffer')
+    }
+    gl.bindTexture(gl.TEXTURE_2D, tex)
+    gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, srcFormat, srcType, image)
+
+    // WebGL1 has different requirements for power of 2 images
+    // vs non power of 2 images so check if the image is a
+    // power of 2 in both dimensions.
+    if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+      // Yes, it's a power of 2. Generate mips.
+      gl.generateMipmap(gl.TEXTURE_2D);
+    } else {
+      // No, it's not a power of 2. Turn off mips and set
+      // wrapping to clamp to edge
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    }
+    gl.bindTexture(gl.TEXTURE_2D, null)
+    return tex
+  }
+
+  const bgdTexture: WebGLTexture = createTextureFromImage(
+    bgdImage,
+    gl.RGBA,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE
+  )
 
   const saturate = (x: number): number =>
     Math.max(Math.min(x, 1), 0)
@@ -473,13 +531,8 @@ export const onContext = ({
       1, -1,
       1, 1
     ])
-    const buf: WebGLBuffer | null = gl.createBuffer()
-    if (buf === null) {
-      throw new Error('Failed to create WebGLBuffer')
-    }
-    // these are a guess
+    const buf: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, unitquad)
     gl.bindBuffer(gl.ARRAY_BUFFER, buf)
-    gl.bufferData(gl.ARRAY_BUFFER, unitquad, gl.STATIC_DRAW)
     // probably stride could be Float32Array.BYTES_PER_ELEMENT or maybe multiply by 2 or by unitquad.length
     gl.vertexAttribPointer(positionHandle, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(positionHandle)
@@ -490,7 +543,6 @@ export const onContext = ({
   const drawParticleBuffers = (
     positionHandle: number,
     particleSizeHandle: number,
-    blobParticleSizeHandle: number,
     particlePositions: WebGLBuffer,
     particleSizes: WebGLBuffer,
     particleCount: number
@@ -501,8 +553,7 @@ export const onContext = ({
 
     gl.bindBuffer(gl.ARRAY_BUFFER, particleSizes)
     gl.vertexAttribPointer(particleSizeHandle, 1, gl.FLOAT, false, 0, 0)
-    // is this mismatched particle size handle a mistake?
-    gl.enableVertexAttribArray(blobParticleSizeHandle)
+    gl.enableVertexAttribArray(particleSizeHandle)
 
     gl.drawArrays(gl.POINTS, 0, particleCount)
 
@@ -535,7 +586,6 @@ export const onContext = ({
     drawParticleBuffers(
       locations.point.attrib.position,
       locations.point.attrib.particlesize,
-      locations.blob.attrib.particlesize,
       particlePositions,
       particleSizes,
       particleCount
@@ -557,9 +607,9 @@ export const onContext = ({
     }
     gl.bindTexture(gl.TEXTURE_2D, fboTex)
     gl.activeTexture(gl.TEXTURE1)
-    // gl.bindTexture(gl.TEXTURE_2D, background_tex_)
-    // gl.activeTexture(gl.TEXTURE0)
-    // DrawUnitQuad(sh_fulls_)
+    gl.bindTexture(gl.TEXTURE_2D, bgdTexture)
+    gl.activeTexture(gl.TEXTURE0)
+    drawUnitQuad(locations.fullscreen.attrib.position)
     gl.bindTexture(gl.TEXTURE_2D, null)
   }
 
@@ -598,7 +648,6 @@ export const onContext = ({
     drawParticleBuffers(
       locations.blob.attrib.position,
       locations.blob.attrib.particlesize,
-      locations.blob.attrib.particlesize,
       particlePositions,
       particleSizes,
       particleCount
@@ -613,8 +662,8 @@ export const onContext = ({
     gl.useProgram(programs.blobfullscreen)
     gl.bindTexture(gl.TEXTURE_2D, fboTex)
     gl.activeTexture(gl.TEXTURE1)
-    // gl.bindTexture(gl.TEXTURE_2D, background_tex_)
-    // gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, bgdTexture)
+    gl.activeTexture(gl.TEXTURE0)
     drawUnitQuad(locations.blobfullscreen.attrib.position)
     gl.bindTexture(gl.TEXTURE_2D, null)
   }

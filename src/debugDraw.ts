@@ -109,6 +109,7 @@ Partial<Box2D.JSDraw>
     drawBuffer.circles.centres.length = count
     drawBuffer.circles.systemRadius = radius
     drawBuffer.circles.radii.fill(radius)
+    drawBuffer.circles.radii.length = count
     // the colour's just black, so this wasn't very impressive
     // drawBuffer.circles.color[0] = HEAPF32[colors_p >> 2]
     // drawBuffer.circles.color[1] = HEAPF32[colors_p + 4 >> 2]
