@@ -581,7 +581,7 @@ export const onContext = ({
     gl.blendFunc(gl.ONE, gl.ONE)
 
     gl.useProgram(programs.point)
-    gl.uniform2f(locations.point.uniform.extents, gl.canvas.width / scale, gl.canvas.height / scale)
+    gl.uniform2f(locations.point.uniform.extents, gl.canvas.width / scale, -gl.canvas.height / scale)
     gl.uniform1f(locations.point.uniform.scale, scale)
     gl.bindTexture(gl.TEXTURE_2D, blobNormalTex)
     drawParticleBuffers(
@@ -643,7 +643,7 @@ export const onContext = ({
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR)
 
     gl.useProgram(programs.blob)
-    gl.uniform2f(locations.blob.uniform.extents, gl.canvas.width / scale, gl.canvas.height / scale)
+    gl.uniform2f(locations.blob.uniform.extents, gl.canvas.width / scale, -gl.canvas.height / scale)
     gl.uniform1f(locations.blob.uniform.scale, scale)
     gl.bindTexture(gl.TEXTURE_2D, blobTemporalTex)
     drawParticleBuffers(
