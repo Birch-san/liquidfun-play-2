@@ -514,7 +514,7 @@ export const onContext = ({
             quantize(out.z),
             quantize(out.w)
           ]),
-          y * TSIZE + x * 4
+          y * TSIZE * 4 + x * 4
         )
         // See fullscreen.glslf (starting at vec4 samp) for how these values
         // are used.
