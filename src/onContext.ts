@@ -320,7 +320,7 @@ export const onContext = ({
     // power of 2 in both dimensions.
     if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
       // Yes, it's a power of 2. Generate mips.
-      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.generateMipmap(gl.TEXTURE_2D)
     } else {
       // No, it's not a power of 2. Turn off mips and set
       // wrapping to clamp to edge
@@ -514,7 +514,7 @@ export const onContext = ({
             quantize(out.z),
             quantize(out.w)
           ]),
-          y * TSIZE + x
+          y * TSIZE + x * 4
         )
         // See fullscreen.glslf (starting at vec4 samp) for how these values
         // are used.
@@ -562,7 +562,8 @@ export const onContext = ({
   }
 
   // is this related to pixelsPerMeter?
-  const scale = gl.canvas.height / 12
+  // const scale = gl.canvas.height / 12
+  const scale = gl.canvas.height / 2
 
   const normalsRefractEffect = (
     time: number,
