@@ -396,6 +396,17 @@ export const onContext = ({
     ) {
     }
 
+    set (
+      x: number,
+      y: number,
+      z: number
+    ): this {
+      this.x = x
+      this.y = y
+      this.z = z
+      return this
+    }
+
     length (): number {
       return Math.sqrt(this.x ** 2 + this.y ** 2 + this.z ** 2)
     }
@@ -526,14 +537,15 @@ export const onContext = ({
     return createTexture(TSIZE, TSIZE, tex, true, false, false)
   }
 
+  const unitQuad = new Float32Array([
+    -1, 1,
+    -1, -1,
+    1, -1,
+    1, 1
+  ])
+
   const drawUnitQuad = (positionHandle: number): void => {
-    const unitquad = new Float32Array([
-      -1, 1,
-      -1, -1,
-      1, -1,
-      1, 1
-    ])
-    const buf: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, unitquad)
+    const buf: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, unitQuad)
     gl.bindBuffer(gl.ARRAY_BUFFER, buf)
     // probably stride could be Float32Array.BYTES_PER_ELEMENT or maybe multiply by 2 or by unitquad.length
     gl.vertexAttribPointer(positionHandle, 2, gl.FLOAT, false, 0, 0)
@@ -606,10 +618,13 @@ export const onContext = ({
     gl.uniform1i(locations.fullscreen.uniform.tex1, 1)
     {
       const angle: number = Math.sin(time) - Math.PI / 2
-      const lightdir = new jsVec3(Math.cos(angle), Math.sin(angle), 1)
-      lightdir.normalize()
-      const { x, y, z } = lightdir
-      gl.uniform3fv(locations.fullscreen.uniform.lightdir, new Float32Array([x, y, z]))
+      refractLightDir.set(Math.cos(angle), Math.sin(angle), 1)
+      const { x, y, z } = refractLightDir
+      // tempting to use .set([]), but let's avoid array allocation
+      refractLightDirBuffer[0] = x
+      refractLightDirBuffer[1] = y
+      refractLightDirBuffer[2] = z
+      gl.uniform3fv(locations.fullscreen.uniform.lightdir, refractLightDirBuffer)
     }
     gl.bindTexture(gl.TEXTURE_2D, fboTex)
     gl.activeTexture(gl.TEXTURE1)
@@ -640,7 +655,7 @@ export const onContext = ({
     // hits 60fps or so, it was originally a value derived from frametime,
     // but then variances in frametime would give the effect of whole screen
     // "flickers" as things got instantly darker/brighter.
-    gl.uniform4fv(locations.color.uniform.color, new Float32Array([0, 0, 0, 0.85]))
+    gl.uniform4fv(locations.color.uniform.color, temporalBlendColor)
     drawUnitQuad(locations.color.attrib.position)
 
     // Then render the particles on top of that.
@@ -713,6 +728,10 @@ export const onContext = ({
   const circleEdgeColor: vec4 = vec4.fromValues(0, 0, 0, 0.2)
   const circleEdgeThicknessPx = 1
 
+  const temporalBlendColor = new Float32Array([0, 0, 0, 0.85])
+
+  const refractLightDir = new jsVec3(1, 0, 1)
+  const refractLightDirBuffer = new Float32Array(3)
   let totalMs = 0
 
   const draw: Draw = (effect: Effect, frameDeltaMs: number): void => {
