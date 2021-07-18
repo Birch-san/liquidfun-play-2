@@ -1,4 +1,6 @@
 {
+  "author": "Alex Birch",
+  "license": "Zlib",
   "scripts": {
     "start": "snowpack dev",
     "build": "npm run tsc && snowpack build",
