@@ -540,6 +540,7 @@ export const onContext = ({
     gl.enableVertexAttribArray(positionHandle)
     gl.drawArrays(gl.TRIANGLE_FAN, 0, 4)
     gl.disableVertexAttribArray(positionHandle)
+    gl.bindBuffer(gl.ARRAY_BUFFER, null)
   }
 
   const drawParticleBuffers = (
@@ -561,6 +562,7 @@ export const onContext = ({
 
     gl.disableVertexAttribArray(positionHandle)
     gl.disableVertexAttribArray(particleSizeHandle)
+    gl.bindBuffer(gl.ARRAY_BUFFER, null)
   }
 
   // is this related to pixelsPerMeter?
@@ -687,9 +689,10 @@ export const onContext = ({
     gl.uniform4fv(locations.circle.uniform.u_color, circles.color)
     gl.uniformMatrix3fv(locations.circle.uniform.u_matrix, false, mat)
     gl.bindBuffer(gl.ARRAY_BUFFER, circleBuffer)
-    gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(locations.general.attrib.a_position)
+    gl.vertexAttribPointer(locations.circle.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(locations.circle.attrib.a_position)
     gl.drawArrays(gl.POINTS, 0, circles.centres.length)
+    gl.disableVertexAttribArray(locations.circle.attrib.a_position)
     gl.bindBuffer(gl.ARRAY_BUFFER, null)
   }
 
@@ -757,6 +760,7 @@ export const onContext = ({
       gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
       gl.enableVertexAttribArray(locations.general.attrib.a_position)
       gl.drawElements(gl.TRIANGLES, growableQuadIndexArray.length * growableQuadIndexArray.elemSize, gl.UNSIGNED_SHORT, 0)
+      gl.disableVertexAttribArray(locations.general.attrib.a_position)
       gl.bindBuffer(gl.ARRAY_BUFFER, null)
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
     }
@@ -766,6 +770,7 @@ export const onContext = ({
       gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
       gl.enableVertexAttribArray(locations.general.attrib.a_position)
       gl.drawArrays(gl.LINES, 0, lineVertices.length)
+      gl.disableVertexAttribArray(locations.general.attrib.a_position)
       gl.bindBuffer(gl.ARRAY_BUFFER, null)
     }
 
