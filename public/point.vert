@@ -1,5 +1,17 @@
 /*
+ * Original from:
  * https://github.com/google/liquidfun/blob/master/liquidfun/Box2D/EyeCandy/assets/point.glslv
+ *
+ * With modifications by Alex Birch:
+ * - transform coordinates via matrix, to (for example) translate the camera
+ * - use the scaling convention in this repository which derives scale factor from that same matrix
+ * - add extra pixels to the point size for better tesselation
+ * - make explicit that radius to diameter conversion is not the job of the scale uniform
+ * - set floating-point precision to medium
+ * - make position attribute a vec2
+ *
+ * Copyright notice applicable to the original code is as follows:
+ *
  * Copyright (c) 2013 Google, Inc.
  *
  * This software is provided 'as-is', without any express or implied
@@ -17,15 +29,16 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
+precision mediump float;
 // Scales the particle to the correct size. All the fun happens in point.ps
 
-attribute vec4 position;       // in 2d worldspace
-attribute float particlesize;  // scale relative to physical size of 1
+attribute vec2 a_position;     // in 2d worldspace
+attribute float a_radius;      // particle radius in metres
 
-uniform vec2 extents;          // worldspace -> clipspace scale
-uniform float scale;           // number of pixels of 1 world unit
+uniform mat3 u_matrix;         // worldspace to clip space transformation
+uniform float u_scale;         // pixels in a metre
 
-void main() {
-  gl_Position = vec4(position.xy / extents, 0.0, 1.0);
-  gl_PointSize = scale * particlesize;
+void main(void) {
+  gl_Position = vec4((u_matrix * vec3(a_position, 1)).xy, 0.0, 1.0);
+  gl_PointSize = 2.0 * a_radius * u_scale + 12.0;
 }

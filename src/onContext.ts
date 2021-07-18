@@ -252,8 +252,8 @@ export const onContext = ({
       uniform: ['lightdir', 'tex0', 'tex1'] as const
     },
     point: {
-      attrib: ['position', 'particlesize'] as const,
-      uniform: ['extents', 'scale'] as const
+      attrib: ['a_position', 'a_radius'] as const,
+      uniform: ['u_matrix', 'u_scale'] as const
     },
     texture: {
       attrib: [] as const,
@@ -565,12 +565,9 @@ export const onContext = ({
     gl.bindBuffer(gl.ARRAY_BUFFER, null)
   }
 
-  // is this related to pixelsPerMeter?
-  // const scale = gl.canvas.height / 12
-  const scale = gl.canvas.height / 2
-
   const normalsRefractEffect = (
     time: number,
+    metresToClipSpace: number,
     particlePositions: WebGLBuffer,
     particleSizes: WebGLBuffer,
     particleCount: number
@@ -585,12 +582,12 @@ export const onContext = ({
     gl.blendFunc(gl.ONE, gl.ONE)
 
     gl.useProgram(programs.point)
-    gl.uniform2f(locations.point.uniform.extents, gl.canvas.width / scale, -gl.canvas.height / scale)
-    gl.uniform1f(locations.point.uniform.scale, scale)
+    gl.uniform1f(locations.point.uniform.u_scale, metresToClipSpace)
+    gl.uniformMatrix3fv(locations.point.uniform.u_matrix, false, mat)
     gl.bindTexture(gl.TEXTURE_2D, blobNormalTex)
     drawParticleBuffers(
-      locations.point.attrib.position,
-      locations.point.attrib.particlesize,
+      locations.point.attrib.a_position,
+      locations.point.attrib.a_radius,
       particlePositions,
       particleSizes,
       particleCount
@@ -621,6 +618,7 @@ export const onContext = ({
   }
 
   const temporalBlendEffect = (
+    metresToClipSpace: number,
     particlePositions: WebGLBuffer,
     particleSizes: WebGLBuffer,
     particleCount: number
@@ -646,10 +644,8 @@ export const onContext = ({
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR)
 
     gl.useProgram(programs.blob)
-    const pixelsPerMeter = getPixelsPerMeter()
-    const canvasToClipSpaceRatio = Math.max(mat[0], -mat[4])
     gl.uniform1i(locations.blob.uniform.tex0, 0)
-    gl.uniform1f(locations.blob.uniform.u_scale, pixelsPerMeter * canvasToClipSpaceRatio)
+    gl.uniform1f(locations.blob.uniform.u_scale, metresToClipSpace)
     gl.uniformMatrix3fv(locations.blob.uniform.u_matrix, false, mat)
     gl.bindTexture(gl.TEXTURE_2D, blobTemporalTex)
     drawParticleBuffers(
@@ -676,11 +672,14 @@ export const onContext = ({
     gl.bindTexture(gl.TEXTURE_2D, null)
   }
 
-  const noEffect = (circles: CircleBuffers, circleBuffer: WebGLBuffer): void => {
-    const pixelsPerMeter = getPixelsPerMeter()
-    const canvasToClipSpaceRatio = Math.max(mat[0], -mat[4])
+  const noEffect = (
+    metresToClipSpace: number,
+    canvasToClipSpaceRatio: number,
+    circles: CircleBuffers,
+    circleBuffer: WebGLBuffer
+  ): void => {
     gl.useProgram(programs.circle)
-    gl.uniform1f(locations.circle.uniform.u_diameter, 2 * circles.systemRadius * pixelsPerMeter * canvasToClipSpaceRatio)
+    gl.uniform1f(locations.circle.uniform.u_diameter, 2 * circles.systemRadius * metresToClipSpace)
     gl.uniform1f(locations.circle.uniform.u_edge_size, circleEdgeThicknessPx * canvasToClipSpaceRatio)
     gl.uniform4fv(locations.circle.uniform.u_edge_color, circleEdgeColor)
     gl.uniform4fv(locations.circle.uniform.u_color, circles.color)
@@ -714,7 +713,6 @@ export const onContext = ({
 
   const draw: Draw = (effect: Effect, frameDeltaMs: number): void => {
     totalMs += frameDeltaMs
-    updateMatrix()
     const drawBuffer: DrawBuffer = getDrawBuffer()
     const { boxes, lineVertices, circles } = drawBuffer
 
@@ -747,10 +745,17 @@ export const onContext = ({
     gl.clear(gl.COLOR_BUFFER_BIT)
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
 
+    updateMatrix()
+    const pixelsPerMeter = getPixelsPerMeter()
+    // whatever's greater out of "canvas height -> clip space" or "canvas width -> clip space"
+    const canvasToClipSpaceRatio = Math.max(mat[0], -mat[4])
+    const metresToClipSpace = pixelsPerMeter * canvasToClipSpaceRatio
+
     if (circles.centres.length > 0) {
       switch (effect) {
         case Effect.TemporalBlend:
           temporalBlendEffect(
+            metresToClipSpace,
             circleBuffer,
             circleRadiusBuffer,
             circles.centres.length
@@ -759,13 +764,19 @@ export const onContext = ({
         case Effect.Refraction:
           normalsRefractEffect(
             totalMs,
+            metresToClipSpace,
             circleBuffer,
             circleRadiusBuffer,
             circles.centres.length
           )
           break
         case Effect.None:
-          noEffect(circles, circleBuffer)
+          noEffect(
+            metresToClipSpace,
+            canvasToClipSpaceRatio,
+            circles,
+            circleBuffer
+          )
           break
         default:
           throw new Error(`Unsupported Effect '${effect as string}'.`)
