@@ -720,11 +720,6 @@ export const onContext = ({
     const drawBuffer: DrawBuffer = getDrawBuffer()
     const { boxes, lineVertices, circles } = drawBuffer
 
-    gl.useProgram(programs.general)
-    gl.disable(gl.DEPTH_TEST)
-    gl.depthMask(false)
-    gl.disable(gl.CULL_FACE)
-
     const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, boxes.getView())
 
     const quadVertices = 4
@@ -747,32 +742,12 @@ export const onContext = ({
     const circleBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, circles.centres.getView())
     const circleRadiusBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, circles.radii.getView())
 
-    updateMatrix()
-    gl.uniformMatrix3fv(locations.general.uniform.u_matrix, false, mat)
-
+    gl.disable(gl.DEPTH_TEST)
+    gl.depthMask(false)
+    gl.disable(gl.CULL_FACE)
     gl.clearColor(0.5, 0.5, 0.5, 0.9)
     gl.clear(gl.COLOR_BUFFER_BIT)
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
-
-    if (growableQuadIndexArray.length > 0) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
-      gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
-      gl.enableVertexAttribArray(locations.general.attrib.a_position)
-      gl.drawElements(gl.TRIANGLES, growableQuadIndexArray.length * growableQuadIndexArray.elemSize, gl.UNSIGNED_SHORT, 0)
-      gl.disableVertexAttribArray(locations.general.attrib.a_position)
-      gl.bindBuffer(gl.ARRAY_BUFFER, null)
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
-    }
-
-    if (lineVertices.length > 0) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
-      gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
-      gl.enableVertexAttribArray(locations.general.attrib.a_position)
-      gl.drawArrays(gl.LINES, 0, lineVertices.length)
-      gl.disableVertexAttribArray(locations.general.attrib.a_position)
-      gl.bindBuffer(gl.ARRAY_BUFFER, null)
-    }
 
     if (circles.centres.length > 0) {
       switch (effect) {
@@ -797,6 +772,30 @@ export const onContext = ({
         default:
           throw new Error(`Unsupported Effect '${effect as string}'.`)
       }
+    }
+
+    updateMatrix()
+    gl.useProgram(programs.general)
+    gl.uniformMatrix3fv(locations.general.uniform.u_matrix, false, mat)
+
+    if (growableQuadIndexArray.length > 0) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
+      gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
+      gl.enableVertexAttribArray(locations.general.attrib.a_position)
+      gl.drawElements(gl.TRIANGLES, growableQuadIndexArray.length * growableQuadIndexArray.elemSize, gl.UNSIGNED_SHORT, 0)
+      gl.disableVertexAttribArray(locations.general.attrib.a_position)
+      gl.bindBuffer(gl.ARRAY_BUFFER, null)
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
+    }
+
+    if (lineVertices.length > 0) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
+      gl.vertexAttribPointer(locations.general.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
+      gl.enableVertexAttribArray(locations.general.attrib.a_position)
+      gl.drawArrays(gl.LINES, 0, lineVertices.length)
+      gl.disableVertexAttribArray(locations.general.attrib.a_position)
+      gl.bindBuffer(gl.ARRAY_BUFFER, null)
     }
 
     flushDrawBuffer()
