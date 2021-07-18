@@ -36,7 +36,7 @@
     switchDemo(demo)
   }
 
-  let effect = Effect.TemporalBlend
+  let effect = Effect.Refraction
 
   let fatalError: string | undefined
   

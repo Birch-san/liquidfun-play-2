@@ -617,7 +617,7 @@ export const onContext = ({
     gl.uniform1i(locations.fullscreen.uniform.tex0, 0)
     gl.uniform1i(locations.fullscreen.uniform.tex1, 1)
     {
-      const angle: number = Math.sin(time) - Math.PI / 2
+      const angle: number = Math.sin(time / 1000) - Math.PI / 2
       refractLightDir.set(Math.cos(angle), Math.sin(angle), 1)
       const { x, y, z } = refractLightDir
       // tempting to use .set([]), but let's avoid array allocation
