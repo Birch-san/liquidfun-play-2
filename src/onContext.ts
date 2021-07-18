@@ -237,7 +237,7 @@ export const onContext = ({
   const locations = getLocations({
     blob: {
       attrib: ['a_position', 'a_radius'] as const,
-      uniform: ['u_matrix', 'u_scale', 'tex0'] as const
+      uniform: ['u_matrix', 'u_scale', 'u_radius', 'tex0'] as const
     },
     blobfullscreen: {
       attrib: ['position'] as const,
@@ -253,7 +253,7 @@ export const onContext = ({
     },
     point: {
       attrib: ['a_position', 'a_radius'] as const,
-      uniform: ['u_matrix', 'u_scale'] as const
+      uniform: ['u_matrix', 'u_radius', 'u_scale'] as const
     },
     texture: {
       attrib: [] as const,
@@ -570,7 +570,8 @@ export const onContext = ({
     metresToClipSpace: number,
     particlePositions: WebGLBuffer,
     particleSizes: WebGLBuffer,
-    particleCount: number
+    particleCount: number,
+    particleSystemRadius: number
   ): void => {
     // first pass: render particles to fbo_, according to point.ps
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
@@ -583,6 +584,7 @@ export const onContext = ({
 
     gl.useProgram(programs.point)
     gl.uniform1f(locations.point.uniform.u_scale, metresToClipSpace)
+    gl.uniform1f(locations.point.uniform.u_radius, particleSystemRadius)
     gl.uniformMatrix3fv(locations.point.uniform.u_matrix, false, mat)
     gl.bindTexture(gl.TEXTURE_2D, blobNormalTex)
     drawParticleBuffers(
@@ -621,7 +623,8 @@ export const onContext = ({
     metresToClipSpace: number,
     particlePositions: WebGLBuffer,
     particleSizes: WebGLBuffer,
-    particleCount: number
+    particleCount: number,
+    particleSystemRadius: number
   ): void => {
     // console.log(gl.getParameter(gl.FRAMEBUFFER_BINDING))
     // first pass:
@@ -646,6 +649,7 @@ export const onContext = ({
     gl.useProgram(programs.blob)
     gl.uniform1i(locations.blob.uniform.tex0, 0)
     gl.uniform1f(locations.blob.uniform.u_scale, metresToClipSpace)
+    gl.uniform1f(locations.blob.uniform.u_radius, particleSystemRadius)
     gl.uniformMatrix3fv(locations.blob.uniform.u_matrix, false, mat)
     gl.bindTexture(gl.TEXTURE_2D, blobTemporalTex)
     drawParticleBuffers(
@@ -758,7 +762,8 @@ export const onContext = ({
             metresToClipSpace,
             circleBuffer,
             circleRadiusBuffer,
-            circles.centres.length
+            circles.centres.length,
+            circles.systemRadius
           )
           break
         case Effect.Refraction:
@@ -767,7 +772,8 @@ export const onContext = ({
             metresToClipSpace,
             circleBuffer,
             circleRadiusBuffer,
-            circles.centres.length
+            circles.centres.length,
+            circles.systemRadius
           )
           break
         case Effect.None:
