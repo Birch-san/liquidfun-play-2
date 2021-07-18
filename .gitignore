@@ -2,4 +2,8 @@
 /build/
 /dist/
 /node_modules/
-/src/tsconfig.tsbuildinfo
+/tsconfig.tsbuildinfo
+/public/FushimiInari.jpg
+/public/FushimiInariCropped.jpg
+/public/FushimiInariCropped.png
+/public/*.psd

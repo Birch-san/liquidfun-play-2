@@ -14,11 +14,11 @@ interface ArrayBufferViewCtor<T extends TypedArray> {
 }
 
 export class GrowableTypedArray<T extends TypedArray> {
-  private static readonly incrementSize = 2 ** 10
+  protected static readonly incrementSize = 2 ** 10
   protected buffer: T
   public length = 0
   constructor (
-    private readonly ctor: ArrayBufferViewCtor<T>,
+    protected readonly ctor: ArrayBufferViewCtor<T>,
     public readonly elemSize: number
   ) {
     this.buffer = new ctor(GrowableTypedArray.incrementSize)
@@ -120,5 +120,41 @@ export class GrowableVec2Array extends GrowableTypedArray<Float32Array> {
     this.length++
   }
 }
+
+export class GrowableRadiusArray extends GrowableTypedArray<Float32Array> {
+  constructor () {
+    super(Float32Array, 1)
+  }
+
+  fill (radius: number): void {
+    this.buffer.fill(radius)
+  }
+}
+
+export class GrowableRandomRadiusArray extends GrowableTypedArray<Float32Array> {
+  constructor () {
+    super(Float32Array, 1)
+    this.buffer.forEach((_, ix: number, arr: Float32Array): void => {
+      arr[ix] = this.element()
+    })
+  }
+
+  private element (): number {
+    return Math.random() * 0.8 + 1.5
+  }
+
+  ensureFits (desiredElems: number): void {
+    const oldLength = this.buffer.length
+    super.ensureFits(desiredElems)
+    const desiredLength = desiredElems * this.elemSize
+    if (oldLength <= desiredLength) {
+      this.buffer.subarray(oldLength).forEach((_, ix: number, arr: Float32Array): void => {
+        arr[ix] = this.element()
+      })
+    }
+  }
+}
+
 export const growableVec2Array = new GrowableVec2Array()
 export const circleCentreArray = new GrowableVec2Array()
+export const randomRadiusArray = new GrowableRandomRadiusArray()
