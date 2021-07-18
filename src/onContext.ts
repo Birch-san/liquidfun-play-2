@@ -236,8 +236,8 @@ export const onContext = ({
 
   const locations = getLocations({
     blob: {
-      attrib: ['position', 'particlesize'] as const,
-      uniform: ['extents', 'scale', 'tex0'] as const
+      attrib: ['a_position', 'a_radius'] as const,
+      uniform: ['u_matrix', 'u_scale', 'tex0'] as const
     },
     blobfullscreen: {
       attrib: ['position'] as const,
@@ -633,30 +633,28 @@ export const onContext = ({
     gl.blendFunc(gl.ZERO, gl.SRC_ALPHA)
 
     gl.useProgram(programs.color)
-    // gl.uniform2f(locations.color.uniform.extents, 1, 1)
-    // gl.uniform1f(scale_handle, 1)
     gl.uniform2f(locations.color.uniform.extents, 1, 1)
     // Set the alpha to be the darkening multiplier.
     // Note how this value is hardcoded to look good assuming the device
     // hits 60fps or so, it was originally a value derived from frametime,
     // but then variances in frametime would give the effect of whole screen
     // "flickers" as things got instantly darker/brighter.
-    // review this
     gl.uniform4fv(locations.color.uniform.color, new Float32Array([0, 0, 0, 0.85]))
-    // sh_color_.Set4f('color', new jsVec4(0, 0, 0, 0.85))
     drawUnitQuad(locations.color.attrib.position)
 
     // Then render the particles on top of that.
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR)
 
     gl.useProgram(programs.blob)
+    const pixelsPerMeter = getPixelsPerMeter()
+    const canvasToClipSpaceRatio = Math.max(mat[0], -mat[4])
     gl.uniform1i(locations.blob.uniform.tex0, 0)
-    gl.uniform2f(locations.blob.uniform.extents, gl.canvas.width / scale, -gl.canvas.height / scale)
-    gl.uniform1f(locations.blob.uniform.scale, scale)
+    gl.uniform1f(locations.blob.uniform.u_scale, pixelsPerMeter * canvasToClipSpaceRatio)
+    gl.uniformMatrix3fv(locations.blob.uniform.u_matrix, false, mat)
     gl.bindTexture(gl.TEXTURE_2D, blobTemporalTex)
     drawParticleBuffers(
-      locations.blob.attrib.position,
-      locations.blob.attrib.particlesize,
+      locations.blob.attrib.a_position,
+      locations.blob.attrib.a_radius,
       particlePositions,
       particleSizes,
       particleCount
@@ -667,7 +665,6 @@ export const onContext = ({
     // second pass:
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 
-    // sh_blobfs.SetWorld(1, 1, 1)
     gl.useProgram(programs.blobfullscreen)
     gl.uniform1i(locations.blobfullscreen.uniform.tex0, 0)
     gl.uniform1i(locations.blobfullscreen.uniform.tex1, 1)
@@ -717,6 +714,7 @@ export const onContext = ({
 
   const draw: Draw = (effect: Effect, frameDeltaMs: number): void => {
     totalMs += frameDeltaMs
+    updateMatrix()
     const drawBuffer: DrawBuffer = getDrawBuffer()
     const { boxes, lineVertices, circles } = drawBuffer
 
@@ -774,7 +772,6 @@ export const onContext = ({
       }
     }
 
-    updateMatrix()
     gl.useProgram(programs.general)
     gl.uniformMatrix3fv(locations.general.uniform.u_matrix, false, mat)
 
