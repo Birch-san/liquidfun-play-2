@@ -237,11 +237,11 @@ export const onContext = ({
   const locations = getLocations({
     blob: {
       attrib: ['position', 'particlesize'] as const,
-      uniform: ['extents', 'scale'] as const
+      uniform: ['extents', 'scale', 'tex0'] as const
     },
     blobfullscreen: {
       attrib: ['position'] as const,
-      uniform: [] as const
+      uniform: ['tex0', 'tex1'] as const
     },
     color: {
       attrib: ['position'] as const,
@@ -249,7 +249,7 @@ export const onContext = ({
     },
     fullscreen: {
       attrib: ['position'] as const,
-      uniform: ['lightdir'] as const
+      uniform: ['lightdir', 'tex0', 'tex1'] as const
     },
     point: {
       attrib: ['position', 'particlesize'] as const,
@@ -601,6 +601,8 @@ export const onContext = ({
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 
     gl.useProgram(programs.fullscreen)
+    gl.uniform1i(locations.fullscreen.uniform.tex0, 0)
+    gl.uniform1i(locations.fullscreen.uniform.tex1, 1)
     {
       const angle: number = Math.sin(time) - Math.PI / 2
       const lightdir = new jsVec3(Math.cos(angle), Math.sin(angle), 1)
@@ -621,6 +623,7 @@ export const onContext = ({
     particleSizes: WebGLBuffer,
     particleCount: number
   ): void => {
+    // console.log(gl.getParameter(gl.FRAMEBUFFER_BINDING))
     // first pass:
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
     // First, darken what's already in the framebuffer gently.
@@ -645,6 +648,7 @@ export const onContext = ({
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR)
 
     gl.useProgram(programs.blob)
+    gl.uniform1i(locations.blob.uniform.tex0, 0)
     gl.uniform2f(locations.blob.uniform.extents, gl.canvas.width / scale, -gl.canvas.height / scale)
     gl.uniform1f(locations.blob.uniform.scale, scale)
     gl.bindTexture(gl.TEXTURE_2D, blobTemporalTex)
@@ -663,6 +667,8 @@ export const onContext = ({
 
     // sh_blobfs.SetWorld(1, 1, 1)
     gl.useProgram(programs.blobfullscreen)
+    gl.uniform1i(locations.blobfullscreen.uniform.tex0, 0)
+    gl.uniform1i(locations.blobfullscreen.uniform.tex1, 1)
     gl.bindTexture(gl.TEXTURE_2D, fboTex)
     gl.activeTexture(gl.TEXTURE1)
     gl.bindTexture(gl.TEXTURE_2D, bgdTexture)
