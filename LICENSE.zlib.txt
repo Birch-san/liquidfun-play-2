@@ -2,7 +2,7 @@ Zlib license.
 
 Copyright (c) 2021 Alex Birch
 
-See also LICENSE.liquidfunEyeCandy.txt for the licensing of
+See also LICENSE.liquidfun.txt for the licensing of
 contributions ported from Liquidfun repository.
 
 ====
