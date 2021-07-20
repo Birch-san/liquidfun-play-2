@@ -1,7 +1,7 @@
 import type { MainLoop } from './loop'
 import type { MutateMatrix, GetDrawBuffer, GetPixelsPerMeter } from './onContext'
 import { DrawBuffer, drawBuffer, flushDrawBuffer } from './debugDraw'
-import type { DestroyDemo, WorldStep } from './demo'
+import type { DestroyDemo, EventHandlers, WorldStep } from './demo'
 import { Demo } from './protocol'
 import type { mat3 } from 'gl-matrix'
 import { frameLimit } from './loop'
@@ -14,6 +14,7 @@ let worldStep: WorldStep | undefined
 let clearCanvas: ClearCanvas | undefined
 let matrixMutator: MutateMatrix | undefined
 let getPixelsPerMeter: GetPixelsPerMeter | undefined
+export let eventHandlers: EventHandlers | undefined
 
 const { debugDraw } = await import('./debugDraw')
 
@@ -31,12 +32,12 @@ export const switchDemo = async (proposedDemo: Demo): Promise<void> => {
     case Demo.Ramp: {
       const boxCount = 100
       const { makeRampDemo } = await import('./demo/ramp');
-      ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter } = makeRampDemo(debugDraw, boxCount))
+      ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter, eventHandlers } = makeRampDemo(debugDraw, boxCount))
       break
     }
     case Demo.WaveMachine: {
       const { makeWaveMachineDemo } = await import('./demo/waveMachine');
-      ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter } = makeWaveMachineDemo(debugDraw, frameLimit))
+      ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter, eventHandlers } = makeWaveMachineDemo(debugDraw, frameLimit))
       break
     }
     default:

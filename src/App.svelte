@@ -5,6 +5,7 @@
   import { getWebGLContext } from './getWebGLContext'
   import type { Draw, OnContextParams } from './onContext'
   import { Effect, onContext } from './onContext'
+  import type { ClickPos } from './demo'
   import {
     getDrawBuffer,
     flushDrawBuffer,
@@ -12,6 +13,7 @@
     mutateMatrix,
     pixelsPerMeterGetter as getPixelsPerMeter,
     switchDemo,
+    eventHandlers,
     setClearCanvas
   } from './demoSwitcher'
   import type { StatsType, Stats, OnStatsParams } from './loop'
@@ -37,6 +39,46 @@
   }
 
   let effect = Effect.Refraction
+
+  // pre-allocate and re-use this message because I hate allocations
+  const clickPos: ClickPos = {
+    x: 0,
+    y: 0,
+    canvasDimensions: {
+      logical: {
+        width,
+        height
+      },
+      physical: {
+        width,
+        height
+      }
+    }
+  }
+
+  const updateMousePos = ({ clientX, clientY }: MouseEvent): void => {
+    assert(canvasElement)
+    const bounds = canvasElement.getBoundingClientRect()
+    const { left, top } = bounds;
+    ({
+      width: clickPos.canvasDimensions.physical.width,
+      height: clickPos.canvasDimensions.physical.height
+    } = bounds)
+    const physicalX = clientX - left
+    const physicalY = clientY - top
+    const xPhysicalToLogical = width / canvasElement.width
+    const yPhysicalToLogical = height / canvasElement.height
+    const logicalX = physicalX / xPhysicalToLogical
+    const logicalY = physicalY / yPhysicalToLogical
+    clickPos.x = logicalX
+    clickPos.y = logicalY
+  }
+
+  const handleMouseDown = (event: MouseEvent): void => {
+    event.preventDefault()
+    updateMousePos(event)
+    eventHandlers?.onMouseDown?.(clickPos)
+  }
 
   let fatalError: string | undefined
   
@@ -104,7 +146,12 @@
       Achievable frame rate (fps):
       {Math.floor(statsModel.animationFrame.avgFrameRate)}
     </pre>
-    <canvas bind:this={canvasElement} width={width} height={height}></canvas>
+    <canvas
+    bind:this={canvasElement}
+    on:mousedown={handleMouseDown}
+    width={width}
+    height={height}
+    ></canvas>
     <fieldset>
       <legend>Demo</legend>
       <label>

@@ -1,6 +1,6 @@
-import type { DemoResources } from './index'
-import { mat3 } from 'gl-matrix'
-import { frameIntervalMs } from '../loop'
+import type { ClickPos, DemoResources } from './index'
+import { vec2, mat3 } from 'gl-matrix'
+// import type { MutateMatrix } from './onContext'
 
 const { box2D } = await import('../box2d')
 
@@ -78,14 +78,52 @@ export const makeWaveMachineDemo = (
   destroy(shape)
   destroy(temp)
 
+  // {
+  //   const { b2EdgeShape } = box2D
+  //   const sideLen = 2
+  //   const from = new b2Vec2(0, 0)
+  //   const to = new b2Vec2(sideLen, 0)
+  //   const bd_ground = new b2BodyDef()
+  //   const ground = world.CreateBody(bd_ground)
+  //   const shape = new b2EdgeShape()
+  //   shape.SetTwoSided(from, to)
+  //   ground.CreateFixture(shape, 0)
+  //   // from.Set(3, 18)
+  //   to.Set(0, sideLen)
+  //   shape.SetTwoSided(from, to)
+  //   ground.CreateFixture(shape, 0)
+  //   destroy(shape)
+  //   destroy(bd_ground)
+  //   destroy(from)
+  //   destroy(to)
+  // }
+
   const secsPerFrame = 1 / frameLimit
   // const particleIterations: number = world.CalculateReasonableParticleIterations(secsPerFrame)
 
   let timeElapsedSecs = 0
 
   const pixelsPerMeter = 160
-  const translation = new Float32Array([0, 0.5])
-  const scaler = new Float32Array([1, 1])
+
+  const cameraMetres = {
+    pos: vec2.fromValues(2.5, 1.25),
+    negPos: vec2.create()
+  } as const
+  const { negate } = vec2
+  const { pos, negPos } = cameraMetres
+  negate(negPos, pos)
+
+  const metresToClip = {
+    // without translation: (0,0) metres ends up in center of canvas
+    translateOriginToTopLeft: vec2.fromValues(-1, 1),
+    scaler: vec2.create()
+  } as const
+
+  const pixelsToMetres = {
+    scalePixelsToMetres: vec2.fromValues(1 / pixelsPerMeter, 1 / pixelsPerMeter),
+    coord: vec2.create(),
+    mat: mat3.create()
+  } as const
 
   return {
     world,
@@ -99,11 +137,18 @@ export const makeWaveMachineDemo = (
     },
     getPixelsPerMeter: () => pixelsPerMeter,
     matrixMutator: (mat: mat3, canvasWidth: number, canvasHeight: number): void => {
+      const { pos } = cameraMetres
+      const { scaler, translateOriginToTopLeft } = metresToClip
       const { translate, scale } = mat3
-      translate(mat, mat, translation)
-      scaler[0] = 1 / (canvasWidth / 2 / pixelsPerMeter)
-      scaler[1] = -1 / (canvasHeight / 2 / pixelsPerMeter)
+      const { set } = vec2
+      translate(mat, mat, translateOriginToTopLeft)
+      set(
+        scaler,
+        1 / (canvasWidth / 2 / pixelsPerMeter),
+        -1 / (canvasHeight / 2 / pixelsPerMeter)
+      )
       scale(mat, mat, scaler)
+      translate(mat, mat, pos)
     },
     destroyDemo: (): void => {
       for (let body = world.GetBodyList(); getPointer(body) !== getPointer(NULL); body = body.GetNext()) {
@@ -114,6 +159,23 @@ export const makeWaveMachineDemo = (
       }
       world.DestroyParticleSystem(particleSystem)
       destroy(world)
+    },
+    eventHandlers: {
+      onMouseDown: ({ x, y }: ClickPos): void => {
+        const { negPos } = cameraMetres
+        const { mat, scalePixelsToMetres, coord } = pixelsToMetres
+        const { identity, scale, translate } = mat3
+        const { set, transformMat3 } = vec2
+        identity(mat)
+        translate(mat, mat, negPos)
+        scale(mat, mat, scalePixelsToMetres)
+        set(coord, x, y)
+        transformMat3(coord, coord, mat)
+        {
+          const [x, y] = coord
+          console.log(x, y)
+        }
+      }
     }
   }
 }
