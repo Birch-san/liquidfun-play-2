@@ -43,35 +43,19 @@
   // pre-allocate and re-use this message because I hate allocations
   const clickPos: ClickPos = {
     x: 0,
-    y: 0,
-    canvasDimensions: {
-      logical: {
-        width,
-        height
-      },
-      physical: {
-        width,
-        height
-      }
-    }
+    y: 0
   }
 
   const updateMousePos = ({ clientX, clientY }: MouseEvent): void => {
     assert(canvasElement)
     const bounds = canvasElement.getBoundingClientRect()
-    const { left, top } = bounds;
-    ({
-      width: clickPos.canvasDimensions.physical.width,
-      height: clickPos.canvasDimensions.physical.height
-    } = bounds)
+    const { left, top } = bounds
     const physicalX = clientX - left
     const physicalY = clientY - top
     const xPhysicalToLogical = width / canvasElement.width
     const yPhysicalToLogical = height / canvasElement.height
-    const logicalX = physicalX / xPhysicalToLogical
-    const logicalY = physicalY / yPhysicalToLogical
-    clickPos.x = logicalX
-    clickPos.y = logicalY
+    clickPos.x = physicalX / xPhysicalToLogical
+    clickPos.y = physicalY / yPhysicalToLogical
   }
 
   const handleMouseDown = (event: MouseEvent): void => {
