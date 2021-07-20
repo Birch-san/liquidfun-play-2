@@ -1,6 +1,5 @@
 import type { ClickPos, DemoResources } from './index'
 import { vec2, mat3 } from 'gl-matrix'
-// import type { MutateMatrix } from './onContext'
 
 const { box2D } = await import('../box2d')
 
@@ -77,26 +76,6 @@ export const makeWaveMachineDemo = (
   destroy(particleGroupDef)
   destroy(shape)
   destroy(temp)
-
-  // {
-  //   const { b2EdgeShape } = box2D
-  //   const sideLen = 2
-  //   const from = new b2Vec2(0, 0)
-  //   const to = new b2Vec2(sideLen, 0)
-  //   const bd_ground = new b2BodyDef()
-  //   const ground = world.CreateBody(bd_ground)
-  //   const shape = new b2EdgeShape()
-  //   shape.SetTwoSided(from, to)
-  //   ground.CreateFixture(shape, 0)
-  //   // from.Set(3, 18)
-  //   to.Set(0, sideLen)
-  //   shape.SetTwoSided(from, to)
-  //   ground.CreateFixture(shape, 0)
-  //   destroy(shape)
-  //   destroy(bd_ground)
-  //   destroy(from)
-  //   destroy(to)
-  // }
 
   const secsPerFrame = 1 / frameLimit
   // const particleIterations: number = world.CalculateReasonableParticleIterations(secsPerFrame)
