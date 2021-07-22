@@ -120,11 +120,21 @@ export const makeWaveMachineDemo = (
   Partial<Box2D.JSQueryCallback>
   >(new JSQueryCallback(), {
     ReportParticle (particleSystem_p: number, index: number): boolean {
-      const { /* getPointer, HEAPF32, */ wrapPointer, b2ParticleSystem } = box2D
+      const { getPointer, HEAPF32, wrapPointer, b2ParticleSystem } = box2D
       const particleSystem: Box2D.b2ParticleSystem = wrapPointer(particleSystem_p, b2ParticleSystem)
-      // const position_p = getPointer(particleSystem.GetPositionBuffer())
-      // const pos_x = HEAPF32[position_p >> 2]
-      // const pos_y = HEAPF32[position_p + 4 >> 2]
+      const position_p = getPointer(particleSystem.GetPositionBuffer()) + index * 8
+      const pos_x = HEAPF32[position_p >> 2]
+      const pos_y = HEAPF32[position_p + 4 >> 2]
+      // impulse.Set(mousePos.x - pos_x, mousePos.y - pos_y)
+      impulse.Set(pos_x - mousePos.x, pos_y - mousePos.y)
+      // const lengthSquared = impulse.LengthSquared()
+      // const magnitude = 1 / lengthSquared
+      const magnitude = 0.25
+      // console.log(magnitude)
+      // console.log(lengthSquared)
+      // console.log(impulse.x, impulse.y)
+      impulse.Normalize()
+      impulse.Set(impulse.x * magnitude, impulse.y * magnitude)
       // console.log('particle pos', pos_x, pos_y)
       particleSystem.ParticleApplyLinearImpulse(index, impulse)
       return true
@@ -147,9 +157,12 @@ export const makeWaveMachineDemo = (
       const [x, y] = coord
       // console.log('click pos', x, y)
       mousePos.Set(x, y)
-      const d = 0.02
+      // const d = 0.02
+      const d = 0.01
       lowerBound.Set(x - d, y - d)
       upperBound.Set(x + d, y + d)
+      // lowerBound.Set(x - d * 2, y - d * 2)
+      // upperBound.Set(x, y)
       aabb.set_lowerBound(lowerBound)
       aabb.set_upperBound(upperBound)
     }
