@@ -125,6 +125,7 @@ export const makeWaveMachineDemo = (
       const position_p = getPointer(particleSystem.GetPositionBuffer()) + index * 8
       const pos_x = HEAPF32[position_p >> 2]
       const pos_y = HEAPF32[position_p + 4 >> 2]
+      // console.log('particle', pos_x, pos_y)
       // impulse.Set(mousePos.x - pos_x, mousePos.y - pos_y)
       impulse.Set(pos_x - mousePos.x, pos_y - mousePos.y)
       // const lengthSquared = impulse.LengthSquared()
@@ -157,12 +158,9 @@ export const makeWaveMachineDemo = (
       const [x, y] = coord
       // console.log('click pos', x, y)
       mousePos.Set(x, y)
-      // const d = 0.02
-      const d = 0.01
+      const d = 0.02
       lowerBound.Set(x - d, y - d)
       upperBound.Set(x + d, y + d)
-      // lowerBound.Set(x - d * 2, y - d * 2)
-      // upperBound.Set(x, y)
       aabb.set_lowerBound(lowerBound)
       aabb.set_upperBound(upperBound)
     }
