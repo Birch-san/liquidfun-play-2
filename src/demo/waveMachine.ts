@@ -11,8 +11,12 @@ export const makeWaveMachineDemo = (
   const {
     b2_dynamicBody,
     b2AABB,
+    b2Body,
     b2BodyDef,
+    b2Fixture,
+    b2Joint,
     b2Vec2,
+    b2ParticleGroup,
     b2ParticleGroupDef,
     b2ParticleSystem,
     b2ParticleSystemDef,
@@ -215,16 +219,15 @@ export const makeWaveMachineDemo = (
       // iterate through all classes which we believe have had instances
       // created via an explicit or under-the-hood wrapPointer().
       // free those instances from their cache.
-      for (const b2ClassName of [
-        'b2Body',
-        'b2Fixture',
-        'b2Joint',
-        'b2ParticleGroup',
-        'b2ParticleSystem',
-        'b2RevoluteJoint',
-        'b2Vec2'
+      for (const b2Class of [
+        b2Body,
+        b2Fixture,
+        b2Joint,
+        b2ParticleGroup,
+        b2ParticleSystem,
+        b2RevoluteJoint,
+        b2Vec2
       ] as const) {
-        const b2Class = box2D[b2ClassName]
         const cache = getCache(b2Class)
         for (const [pointer, instance] of Object.entries(cache)) {
           if (b2Class === b2Vec2) {
@@ -233,7 +236,6 @@ export const makeWaveMachineDemo = (
               continue
             }
           }
-          console.log('freeing cache reference', b2ClassName, instance)
           // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
           delete cache[Number(pointer)]
         }
