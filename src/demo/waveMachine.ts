@@ -9,7 +9,9 @@ export const makeWaveMachineDemo = (
 ): DemoResources => {
   const {
     b2_dynamicBody,
+    b2AABB,
     b2BodyDef,
+    b2Fixture,
     b2Vec2,
     b2ParticleGroupDef,
     b2ParticleSystemDef,
@@ -17,9 +19,11 @@ export const makeWaveMachineDemo = (
     b2RevoluteJoint,
     b2RevoluteJointDef,
     b2World,
+    JSQueryCallback,
     castObject,
     destroy,
     getPointer,
+    wrapPointer,
     NULL
   } = box2D
 
@@ -104,6 +108,53 @@ export const makeWaveMachineDemo = (
     mat: mat3.create()
   } as const
 
+  const impulse = new b2Vec2(0.25, 0)
+
+  let mouseIsDown = false
+  const mousePos = new b2Vec2(0, 0)
+  const lowerBound = new b2Vec2(0, 0)
+  const upperBound = new b2Vec2(0, 0)
+  const aabb = new b2AABB()
+  const queryCallback: Box2D.JSQueryCallback = Object.assign<
+  Box2D.JSQueryCallback,
+  Partial<Box2D.JSQueryCallback>
+  >(new JSQueryCallback(), {
+    ReportParticle (particleSystem_p: number, index: number): boolean {
+      const { /* getPointer, HEAPF32, */ wrapPointer, b2ParticleSystem } = box2D
+      const particleSystem: Box2D.b2ParticleSystem = wrapPointer(particleSystem_p, b2ParticleSystem)
+      // const position_p = getPointer(particleSystem.GetPositionBuffer())
+      // const pos_x = HEAPF32[position_p >> 2]
+      // const pos_y = HEAPF32[position_p + 4 >> 2]
+      // console.log('particle pos', pos_x, pos_y)
+      particleSystem.ParticleApplyLinearImpulse(index, impulse)
+      return true
+    },
+    ReportFixture: (_fixture_p: number) => false,
+    ShouldQueryParticleSystem: (_particleSystem_p: number) => true
+  })
+
+  const updateMousePos = ({ x, y }: ClickPos): void => {
+    const { negPos } = cameraMetres
+    const { mat, scalePixelsToMetres, coord } = pixelsToMetres
+    const { identity, scale, translate } = mat3
+    const { set, transformMat3 } = vec2
+    identity(mat)
+    translate(mat, mat, negPos)
+    scale(mat, mat, scalePixelsToMetres)
+    set(coord, x, y)
+    transformMat3(coord, coord, mat)
+    {
+      const [x, y] = coord
+      // console.log('click pos', x, y)
+      mousePos.Set(x, y)
+      const d = 0.02
+      lowerBound.Set(x - d, y - d)
+      upperBound.Set(x + d, y + d)
+      aabb.set_lowerBound(lowerBound)
+      aabb.set_upperBound(upperBound)
+    }
+  }
+
   return {
     world,
     worldStep: (intervalMs: number): void => {
@@ -112,6 +163,9 @@ export const makeWaveMachineDemo = (
       const intervalSecs = intervalMs / 1000
       timeElapsedSecs += intervalSecs
       joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedSecs) * Math.PI)
+      if (mouseIsDown) {
+        world.QueryAABB(queryCallback, aabb)
+      }
       world.Step(intervalSecs, 1, 1, particleIterations)
     },
     getPixelsPerMeter: () => pixelsPerMeter,
@@ -138,22 +192,24 @@ export const makeWaveMachineDemo = (
       }
       world.DestroyParticleSystem(particleSystem)
       destroy(world)
+      destroy(mousePos)
+      destroy(queryCallback)
+      destroy(lowerBound)
+      destroy(upperBound)
+      destroy(aabb)
+      destroy(impulse)
     },
     eventHandlers: {
-      onMouseDown: ({ x, y }: ClickPos): void => {
-        const { negPos } = cameraMetres
-        const { mat, scalePixelsToMetres, coord } = pixelsToMetres
-        const { identity, scale, translate } = mat3
-        const { set, transformMat3 } = vec2
-        identity(mat)
-        translate(mat, mat, negPos)
-        scale(mat, mat, scalePixelsToMetres)
-        set(coord, x, y)
-        transformMat3(coord, coord, mat)
-        {
-          const [x, y] = coord
-          console.log(x, y)
-        }
+      onMouseDown: (clickPos: ClickPos): void => {
+        mouseIsDown = true
+        updateMousePos(clickPos)
+      },
+      onMouseUp: (): void => {
+        mouseIsDown = false
+      },
+      onMouseMove: (clickPos: ClickPos): void => {
+        // mouseIsDown = false
+        updateMousePos(clickPos)
       }
     }
   }

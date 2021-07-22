@@ -64,6 +64,26 @@
     eventHandlers?.onMouseDown?.(clickPos)
   }
 
+  const handleMouseUp = (event: MouseEvent): void => {
+    event.preventDefault()
+    updateMousePos(event)
+    eventHandlers?.onMouseUp?.()
+  }
+
+  const handleMouseEnter = (event: MouseEvent): void => {
+    event.preventDefault()
+    updateMousePos(event)
+    if (event.buttons & 1) {
+      eventHandlers?.onMouseDown?.(clickPos)
+    }
+  }
+
+  const handleMouseMove = (event: MouseEvent): void => {
+    event.preventDefault()
+    updateMousePos(event)
+    eventHandlers?.onMouseMove?.(clickPos)
+  }
+
   let fatalError: string | undefined
   
   onMount(() => {
@@ -133,6 +153,10 @@
     <canvas
     bind:this={canvasElement}
     on:mousedown={handleMouseDown}
+    on:mouseup={handleMouseUp}
+    on:mouseleave={handleMouseUp}
+    on:mouseenter={handleMouseEnter}
+    on:mousemove={handleMouseMove}
     width={width}
     height={height}
     ></canvas>

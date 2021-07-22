@@ -30,7 +30,7 @@
     "typescript": "^4.2.3"
   },
   "dependencies": {
-    "box2d-wasm": "npm:liquidfun-wasm@^6.0.4",
+    "box2d-wasm": "npm:liquidfun-wasm@6.0.4-lf.1",
     "gl-matrix": "^3.3.0",
     "svelte": "^3.35.0"
   },

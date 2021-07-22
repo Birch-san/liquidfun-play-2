@@ -3,7 +3,7 @@ import type { GetPixelsPerMeter, MutateMatrix } from '../onContext'
 export type DestroyDemo = () => void
 export type WorldStep = (intervalMs: number) => void
 
-// click coordinates within bounding rect of canvas
+// mouse coordinates within bounding rect of canvas
 export interface ClickPos {
   // physical distance in pixels from left edge of canvas
   // clientX - left
@@ -13,9 +13,13 @@ export interface ClickPos {
   y: number
 }
 export type OnMouseDown = (pos: ClickPos) => void
+export type OnMouseMove = (pos: ClickPos) => void
+export type OnMouseUp = () => void
 
 export interface EventHandlers {
   onMouseDown?: OnMouseDown
+  onMouseMove?: OnMouseMove
+  onMouseUp?: OnMouseUp
 }
 
 export interface DemoResources {
