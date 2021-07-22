@@ -17,12 +17,14 @@ const {
 } = box2D
 const dummyAxis = new b2Vec2(0, 0)
 const dummyAxis_p = getPointer(dummyAxis)
+// we have Box2D structures which need to outlive those created in demos.
+export const dontDestroy = new Set<Box2D.b2Vec2>([dummyAxis])
 
 const DrawSolidCircle: Box2D.JSDraw['DrawSolidCircle'] =
 (center_p: number, radius: number, axis_p: number, color_p: number): void => {
-  const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
-  const center: Box2D.b2Vec2 = wrapPointer(center_p, b2Vec2)
-  const axis: Box2D.b2Vec2 = wrapPointer(axis_p, b2Vec2)
+  // const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
+  // const center: Box2D.b2Vec2 = wrapPointer(center_p, b2Vec2)
+  // const axis: Box2D.b2Vec2 = wrapPointer(axis_p, b2Vec2)
 }
 
 export interface CircleBuffers {

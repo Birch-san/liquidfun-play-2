@@ -1,5 +1,6 @@
 import type { ClickPos, DemoResources } from './index'
 import { vec2, mat3 } from 'gl-matrix'
+import { dontDestroy } from '../debugDraw'
 
 const { box2D } = await import('../box2d')
 
@@ -11,9 +12,9 @@ export const makeWaveMachineDemo = (
     b2_dynamicBody,
     b2AABB,
     b2BodyDef,
-    b2Fixture,
     b2Vec2,
     b2ParticleGroupDef,
+    b2ParticleSystem,
     b2ParticleSystemDef,
     b2PolygonShape,
     b2RevoluteJoint,
@@ -22,8 +23,10 @@ export const makeWaveMachineDemo = (
     JSQueryCallback,
     castObject,
     destroy,
+    getCache,
     getPointer,
     wrapPointer,
+    HEAPF32,
     NULL
   } = box2D
 
@@ -120,7 +123,6 @@ export const makeWaveMachineDemo = (
   Partial<Box2D.JSQueryCallback>
   >(new JSQueryCallback(), {
     ReportParticle (particleSystem_p: number, index: number): boolean {
-      const { getPointer, HEAPF32, wrapPointer, b2ParticleSystem } = box2D
       const particleSystem: Box2D.b2ParticleSystem = wrapPointer(particleSystem_p, b2ParticleSystem)
       const position_p = getPointer(particleSystem.GetPositionBuffer()) + index * 8
       const pos_x = HEAPF32[position_p >> 2]
@@ -201,6 +203,41 @@ export const makeWaveMachineDemo = (
       destroy(upperBound)
       destroy(aabb)
       destroy(impulse)
+      // destroy() is necessary on any instance created via `new`.
+      // destroy() = "invoke __destroy__ (free emscripten heap)" + free reference from JS cache
+      // but there's another way to create instances: wrapPointer().
+      // wrapPointer() creates (or retrieves from cache) instances _without_ malloc()ing
+      // memory on Emscripten's heap.
+      // we need to cleanup after wrapPointer(). destroy() is not necessary, but we do need
+      // to free up the JS cache.
+      // wrapPointer() may be called by us, or under-the-hood
+      // (i.e. by any method which returns an instance).
+      // iterate through all classes which we believe have had instances
+      // created via an explicit or under-the-hood wrapPointer().
+      // free those instances from their cache.
+      for (const b2ClassName of [
+        'b2Body',
+        'b2Fixture',
+        'b2Joint',
+        'b2ParticleGroup',
+        'b2ParticleSystem',
+        'b2RevoluteJoint',
+        'b2Vec2'
+      ] as const) {
+        const b2Class = box2D[b2ClassName]
+        const cache = getCache(b2Class)
+        for (const [pointer, instance] of Object.entries(cache)) {
+          if (b2Class === b2Vec2) {
+            // debugDraw.ts allocates a b2Vec2 which we should be careful not to destroy.
+            if (dontDestroy.has(instance as Box2D.b2Vec2)) {
+              continue
+            }
+          }
+          console.log('freeing cache reference', b2ClassName, instance)
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete cache[Number(pointer)]
+        }
+      }
     },
     eventHandlers: {
       onMouseDown: (clickPos: ClickPos): void => {
