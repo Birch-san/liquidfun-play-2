@@ -15,6 +15,7 @@ export const makeRampDemo = (
     b2PolygonShape,
     b2World,
     destroy,
+    getCache,
     getPointer,
     NULL
   } = box2D
@@ -101,6 +102,30 @@ export const makeRampDemo = (
         world.DestroyBody(body)
       }
       destroy(world)
+      // destroy() is necessary on any instance created via `new`.
+      // destroy() = "invoke __destroy__ (free emscripten heap)" + free reference from JS cache
+      // but there's another way to create instances: wrapPointer().
+      // wrapPointer() creates (or retrieves from cache) instances _without_ malloc()ing
+      // memory on Emscripten's heap.
+      // we need to cleanup after wrapPointer(). destroy() is not necessary, but we do need
+      // to free up the JS cache.
+      // wrapPointer() may be called by us, or under-the-hood
+      // (i.e. by any method which returns an instance).
+      // iterate through all classes which we believe have had instances
+      // created via an explicit or under-the-hood wrapPointer().
+      // free those instances from their cache.
+      for (const b2ClassName of [
+        'b2Body',
+        'b2Fixture'
+      ] as const) {
+        const b2Class = box2D[b2ClassName]
+        const cache = getCache(b2Class)
+        for (const pointer of Object.keys(cache)) {
+          // console.info('freeing cache reference', b2ClassName)
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete cache[Number(pointer)]
+        }
+      }
     }
   }
 }
