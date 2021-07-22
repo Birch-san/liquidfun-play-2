@@ -125,18 +125,11 @@ export const makeWaveMachineDemo = (
       const position_p = getPointer(particleSystem.GetPositionBuffer()) + index * 8
       const pos_x = HEAPF32[position_p >> 2]
       const pos_y = HEAPF32[position_p + 4 >> 2]
-      // console.log('particle', pos_x, pos_y)
-      // impulse.Set(mousePos.x - pos_x, mousePos.y - pos_y)
       impulse.Set(pos_x - mousePos.x, pos_y - mousePos.y)
-      // const lengthSquared = impulse.LengthSquared()
-      // const magnitude = 1 / lengthSquared
-      const magnitude = 0.25
-      // console.log(magnitude)
-      // console.log(lengthSquared)
-      // console.log(impulse.x, impulse.y)
+      const lengthSquared = impulse.LengthSquared()
+      const magnitude = Math.min(1 / lengthSquared, 0.25)
       impulse.Normalize()
       impulse.Set(impulse.x * magnitude, impulse.y * magnitude)
-      // console.log('particle pos', pos_x, pos_y)
       particleSystem.ParticleApplyLinearImpulse(index, impulse)
       return true
     },
@@ -156,7 +149,6 @@ export const makeWaveMachineDemo = (
     transformMat3(coord, coord, mat)
     {
       const [x, y] = coord
-      // console.log('click pos', x, y)
       mousePos.Set(x, y)
       const d = 0.02
       lowerBound.Set(x - d, y - d)
@@ -219,7 +211,6 @@ export const makeWaveMachineDemo = (
         mouseIsDown = false
       },
       onMouseMove: (clickPos: ClickPos): void => {
-        // mouseIsDown = false
         updateMousePos(clickPos)
       }
     }
