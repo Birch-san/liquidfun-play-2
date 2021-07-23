@@ -2,7 +2,7 @@ import type { MainLoop } from './loop'
 import type { MutateMatrix, GetDrawBuffer, GetPixelsPerMeter } from './onContext'
 import { DrawBuffer, drawBuffer, flushDrawBuffer } from './debugDraw'
 import type { DestroyDemo, EventHandlers, WorldStep } from './demo'
-import { Demo } from './protocol'
+import { Demo } from './demo'
 import type { mat3 } from 'gl-matrix'
 import { frameLimit } from './loop'
 

@@ -1,11 +1,11 @@
 <script lang='ts'>
   import { onMount } from 'svelte'
   import { assert } from './assert'
-  import { Demo } from './protocol'
   import { getWebGLContext } from './getWebGLContext'
   import type { Draw, OnContextParams } from './onContext'
   import { Effect, onContext } from './onContext'
   import type { ClickPos } from './demo'
+  import { Demo } from './demo'
   import {
     getDrawBuffer,
     flushDrawBuffer,

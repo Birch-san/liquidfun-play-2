@@ -1,5 +1,11 @@
 import type { GetPixelsPerMeter, MutateMatrix } from '../onContext'
 
+export enum Demo {
+  Ramp = 'Ramp',
+  WaveMachine = 'WaveMachine',
+  None = 'None'
+}
+
 export type DestroyDemo = () => void
 export type WorldStep = (intervalMs: number) => void
 
