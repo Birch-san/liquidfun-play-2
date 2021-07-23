@@ -5,8 +5,7 @@ import { LeakMitigator } from '../box2d'
 const { box2D } = await import('../box2d')
 
 export const makeGravityDemo = (
-  debugDraw: Box2D.b2Draw,
-  frameLimit: number
+  debugDraw: Box2D.b2Draw
 ): DemoResources => {
   const {
     b2_dynamicBody,
@@ -83,9 +82,6 @@ export const makeGravityDemo = (
   destroy(particleGroupDef)
   destroy(shape)
   destroy(temp)
-
-  const secsPerFrame = 1 / frameLimit
-  // const particleIterations: number = world.CalculateReasonableParticleIterations(secsPerFrame)
 
   let timeElapsedSecs = 0
 
