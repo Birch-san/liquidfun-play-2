@@ -1,6 +1,6 @@
 import type { ClickPos, DemoResources } from './index'
 import { vec2, mat3 } from 'gl-matrix'
-import { dontDestroy } from '../debugDraw'
+import { LeakMitigator } from '../box2d'
 
 const { box2D } = await import('../box2d')
 
@@ -11,8 +11,12 @@ export const makeWaveMachineDemo = (
   const {
     b2_dynamicBody,
     b2AABB,
+    b2Body,
     b2BodyDef,
+    b2Fixture,
     b2Vec2,
+    b2Joint,
+    b2ParticleGroup,
     b2ParticleGroupDef,
     b2ParticleSystem,
     b2ParticleSystemDef,
@@ -23,13 +27,14 @@ export const makeWaveMachineDemo = (
     JSQueryCallback,
     castObject,
     destroy,
-    getCache,
     getPointer,
     wrapPointer,
     HEAPF32,
     NULL
   } = box2D
 
+  const leakMitigator = new LeakMitigator()
+  const { recordLeak, freeLeaked } = leakMitigator
   const gravity = new b2Vec2(0, 10)
   const world = new b2World(gravity)
   destroy(gravity)
@@ -56,7 +61,7 @@ export const makeWaveMachineDemo = (
   ]) {
     temp.Set(x, y)
     shape.SetAsBox(hx, hy, temp, 0)
-    body.CreateFixture(shape, 5)
+    recordLeak(body.CreateFixture(shape, 5), b2Fixture)
   }
 
   const jd = new b2RevoluteJointDef()
@@ -65,21 +70,22 @@ export const makeWaveMachineDemo = (
   jd.enableMotor = true
   temp.Set(0, 1)
   jd.Initialize(ground, body, temp)
-  const joint: Box2D.b2RevoluteJoint = castObject(world.CreateJoint(jd), b2RevoluteJoint)
+  const jointAbstract: Box2D.b2Joint = recordLeak(world.CreateJoint(jd), b2Joint)
+  const joint: Box2D.b2RevoluteJoint = recordLeak(castObject(jointAbstract, b2RevoluteJoint), b2RevoluteJoint)
   destroy(jd)
 
   const psd = new b2ParticleSystemDef()
   psd.radius = 0.025
   psd.dampingStrength = 0.2
 
-  const particleSystem: Box2D.b2ParticleSystem = world.CreateParticleSystem(psd)
+  const particleSystem: Box2D.b2ParticleSystem = recordLeak(world.CreateParticleSystem(psd), b2ParticleSystem)
   destroy(psd)
 
   temp.Set(0, 1)
   shape.SetAsBox(0.9, 0.9, temp, 0)
   const particleGroupDef = new b2ParticleGroupDef()
   particleGroupDef.shape = shape
-  particleSystem.CreateParticleGroup(particleGroupDef)
+  recordLeak(particleSystem.CreateParticleGroup(particleGroupDef), b2ParticleGroup)
   destroy(particleGroupDef)
   destroy(shape)
   destroy(temp)
@@ -123,8 +129,9 @@ export const makeWaveMachineDemo = (
   Partial<Box2D.JSQueryCallback>
   >(new JSQueryCallback(), {
     ReportParticle (particleSystem_p: number, index: number): boolean {
-      const particleSystem: Box2D.b2ParticleSystem = wrapPointer(particleSystem_p, b2ParticleSystem)
-      const position_p = getPointer(particleSystem.GetPositionBuffer()) + index * 8
+      const particleSystem: Box2D.b2ParticleSystem = recordLeak(wrapPointer(particleSystem_p, b2ParticleSystem), b2ParticleSystem)
+      const positionBuffer: Box2D.b2Vec2 = recordLeak(particleSystem.GetPositionBuffer(), b2Vec2)
+      const position_p = getPointer(positionBuffer) + index * 8
       const pos_x = HEAPF32[position_p >> 2]
       const pos_y = HEAPF32[position_p + 4 >> 2]
       impulse.Set(pos_x - mousePos.x, pos_y - mousePos.y)
@@ -189,10 +196,10 @@ export const makeWaveMachineDemo = (
       translate(mat, mat, pos)
     },
     destroyDemo: (): void => {
-      for (let body = world.GetBodyList(); getPointer(body) !== getPointer(NULL); body = body.GetNext()) {
+      for (let body = recordLeak(world.GetBodyList(), b2Body); getPointer(body) !== getPointer(NULL); body = recordLeak(body.GetNext(), b2Body)) {
         world.DestroyBody(body)
       }
-      for (let joint = world.GetJointList(); getPointer(joint) !== getPointer(NULL); joint = joint.GetNext()) {
+      for (let joint = recordLeak(world.GetJointList(), b2Joint); getPointer(joint) !== getPointer(NULL); joint = recordLeak(joint.GetNext(), b2Joint)) {
         world.DestroyJoint(joint)
       }
       world.DestroyParticleSystem(particleSystem)
@@ -203,41 +210,7 @@ export const makeWaveMachineDemo = (
       destroy(upperBound)
       destroy(aabb)
       destroy(impulse)
-      // destroy() is necessary on any instance created via `new`.
-      // destroy() = "invoke __destroy__ (free emscripten heap)" + free reference from JS cache
-      // but there's another way to create instances: wrapPointer().
-      // wrapPointer() creates (or retrieves from cache) instances _without_ malloc()ing
-      // memory on Emscripten's heap.
-      // we need to cleanup after wrapPointer(). destroy() is not necessary, but we do need
-      // to free up the JS cache.
-      // wrapPointer() may be called by us, or under-the-hood
-      // (i.e. by any method which returns an instance).
-      // iterate through all classes which we believe have had instances
-      // created via an explicit or under-the-hood wrapPointer().
-      // free those instances from their cache.
-      for (const b2ClassName of [
-        'b2Body',
-        'b2Fixture',
-        'b2Joint',
-        'b2ParticleGroup',
-        'b2ParticleSystem',
-        'b2RevoluteJoint',
-        'b2Vec2'
-      ] as const) {
-        const b2Class = box2D[b2ClassName]
-        const cache = getCache(b2Class)
-        for (const [pointer, instance] of Object.entries(cache)) {
-          if (b2Class === b2Vec2) {
-            // debugDraw.ts allocates a b2Vec2 which we should be careful not to destroy.
-            if (dontDestroy.has(instance as Box2D.b2Vec2)) {
-              continue
-            }
-          }
-          // console.info('freeing cache reference', b2ClassName)
-          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-          delete cache[Number(pointer)]
-        }
-      }
+      freeLeaked()
     },
     eventHandlers: {
       onMouseDown: (clickPos: ClickPos): void => {
