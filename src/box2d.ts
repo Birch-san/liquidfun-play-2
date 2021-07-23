@@ -30,6 +30,11 @@ export const box2D: typeof Box2D & EmscriptenModule = await Box2DFactory({
  */
 export class LeakMitigator {
   private readonly instances = new Map<typeof Box2D.WrapperObject, Set<Box2D.WrapperObject>>()
+
+  /**
+   * wrap this around any Emscripten method which returns an object.
+   * records the instance, so that we can free it from cache later
+   */
   recordLeak = <Instance extends Box2D.WrapperObject>(
     instance: Instance,
     b2Class: typeof Box2D.WrapperObject = box2D.getClass(instance)
@@ -40,6 +45,10 @@ export class LeakMitigator {
     return instance
   }
 
+  /**
+   * prefer this over {@link Box2D.wrapPointer}.
+   * records the instance that's created, so that we can free it from cache later
+   */
   safeWrapPointer = <
   TargetClass extends typeof Box2D.WrapperObject & (
     new (...args: any[]) => InstanceType<TargetClass>
@@ -52,12 +61,15 @@ export class LeakMitigator {
       targetType
     )
 
+  /**
+   * access the cache structure of each Emscripten class for which we recorded instances,
+   * then free from cache every instance that we recorded.
+   */
   freeLeaked = (): void => {
     const { getCache, getPointer } = box2D
     for (const [b2Class, instances] of this.instances.entries()) {
       const cache = getCache(b2Class)
       for (const instance of instances) {
-        console.log('deleting')
         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         delete cache[getPointer(instance)]
       }

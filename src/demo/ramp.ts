@@ -1,5 +1,6 @@
 import type { DemoResources } from './index'
 import { mat3 } from 'gl-matrix'
+import { LeakMitigator } from '../box2d'
 
 const { box2D } = await import('../box2d')
 
@@ -15,11 +16,11 @@ export const makeRampDemo = (
     b2PolygonShape,
     b2World,
     destroy,
-    getCache,
     getPointer,
     NULL
   } = box2D
 
+  const { freeLeaked, recordLeak } = new LeakMitigator()
   const gravity = new b2Vec2(0, 10)
   const world = new b2World(gravity)
   destroy(gravity)
@@ -29,12 +30,12 @@ export const makeRampDemo = (
   const from = new b2Vec2(3, 4)
   const to = new b2Vec2(6, 7)
   const bd_ground = new b2BodyDef()
-  const ground = world.CreateBody(bd_ground)
+  const ground = recordLeak(world.CreateBody(bd_ground))
   // ramp which boxes fall onto initially
   {
     const shape = new b2EdgeShape()
     shape.SetTwoSided(from, to)
-    ground.CreateFixture(shape, 0)
+    recordLeak(ground.CreateFixture(shape, 0))
     destroy(shape)
   }
   // floor which boxes rest on
@@ -43,7 +44,7 @@ export const makeRampDemo = (
     to.Set(22, 18)
     const shape = new b2EdgeShape()
     shape.SetTwoSided(from, to)
-    ground.CreateFixture(shape, 0)
+    recordLeak(ground.CreateFixture(shape, 0))
     destroy(shape)
   }
   destroy(bd_ground)
@@ -71,8 +72,8 @@ export const makeRampDemo = (
 
   // make falling boxes
   for (let i = 0; i < boxCount; i++) {
-    const body = world.CreateBody(bd)
-    body.CreateFixture(square, 1)
+    const body = recordLeak(world.CreateBody(bd))
+    recordLeak(body.CreateFixture(square, 1))
     initPosition(body, i)
   }
 
@@ -98,34 +99,11 @@ export const makeRampDemo = (
       scale(mat, mat, scaler)
     },
     destroyDemo: (): void => {
-      for (let body = world.GetBodyList(); getPointer(body) !== getPointer(NULL); body = body.GetNext()) {
+      for (let body = recordLeak(world.GetBodyList()); getPointer(body) !== getPointer(NULL); body = recordLeak(body.GetNext())) {
         world.DestroyBody(body)
       }
       destroy(world)
-      // destroy() is necessary on any instance created via `new`.
-      // destroy() = "invoke __destroy__ (free emscripten heap)" + free reference from JS cache
-      // but there's another way to create instances: wrapPointer().
-      // wrapPointer() creates (or retrieves from cache) instances _without_ malloc()ing
-      // memory on Emscripten's heap.
-      // we need to cleanup after wrapPointer(). destroy() is not necessary, but we do need
-      // to free up the JS cache.
-      // wrapPointer() may be called by us, or under-the-hood
-      // (i.e. by any method which returns an instance).
-      // iterate through all classes which we believe have had instances
-      // created via an explicit or under-the-hood wrapPointer().
-      // free those instances from their cache.
-      for (const b2ClassName of [
-        'b2Body',
-        'b2Fixture'
-      ] as const) {
-        const b2Class = box2D[b2ClassName]
-        const cache = getCache(b2Class)
-        for (const pointer of Object.keys(cache)) {
-          // console.info('freeing cache reference', b2ClassName)
-          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-          delete cache[Number(pointer)]
-        }
-      }
+      freeLeaked()
     }
   }
 }

@@ -28,8 +28,7 @@ export const makeWaveMachineDemo = (
     NULL
   } = box2D
 
-  const leakMitigator = new LeakMitigator()
-  const { freeLeaked, recordLeak, safeWrapPointer } = leakMitigator
+  const { freeLeaked, recordLeak, safeWrapPointer } = new LeakMitigator()
   const gravity = new b2Vec2(0, 10)
   const world = new b2World(gravity)
   destroy(gravity)
