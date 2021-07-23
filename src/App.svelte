@@ -31,7 +31,7 @@
 
   let canvasElement: HTMLCanvasElement | undefined
 
-  let demo: Demo = Demo.WaveMachine
+  let demo: Demo = Demo.Gravity
   
   const onChangeDemo = (event: Event): void => {
     event.stopPropagation()
@@ -165,6 +165,10 @@
       <label>
         <input type=radio bind:group={demo} value={Demo.Ramp} on:change={onChangeDemo}>
         Ramp
+      </label>
+      <label>
+        <input type=radio bind:group={demo} value={Demo.Gravity} on:change={onChangeDemo}>
+        Gravity
       </label>
       <label>
         <input type=radio bind:group={demo} value={Demo.WaveMachine} on:change={onChangeDemo}>

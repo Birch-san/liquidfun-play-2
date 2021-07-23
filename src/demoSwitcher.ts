@@ -1,10 +1,16 @@
+import type { mat3 } from 'gl-matrix'
 import type { MainLoop } from './loop'
 import type { MutateMatrix, GetDrawBuffer, GetPixelsPerMeter } from './onContext'
-import { DrawBuffer, drawBuffer, flushDrawBuffer } from './debugDraw'
+import type { DrawBuffer } from './debugDraw'
+import { debugDraw, drawBuffer, flushDrawBuffer } from './debugDraw'
 import type { DestroyDemo, EventHandlers, WorldStep } from './demo'
-import { Demo } from './demo'
-import type { mat3 } from 'gl-matrix'
 import { frameLimit } from './loop'
+import {
+  Demo,
+  makeRampDemo,
+  makeGravityDemo,
+  makeWaveMachineDemo
+} from './demo'
 
 type ClearCanvas = () => void
 
@@ -16,9 +22,7 @@ let matrixMutator: MutateMatrix | undefined
 let getPixelsPerMeter: GetPixelsPerMeter | undefined
 export let eventHandlers: EventHandlers | undefined
 
-const { debugDraw } = await import('./debugDraw')
-
-export const switchDemo = async (proposedDemo: Demo): Promise<void> => {
+export const switchDemo = (proposedDemo: Demo): void => {
   destroyDemo?.()
   destroyDemo = undefined
   worldStep = undefined
@@ -30,13 +34,15 @@ export const switchDemo = async (proposedDemo: Demo): Promise<void> => {
       world = undefined
       break
     case Demo.Ramp: {
-      const boxCount = 100
-      const { makeRampDemo } = await import('./demo/ramp');
+      const boxCount = 100;
       ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter, eventHandlers } = makeRampDemo(debugDraw, boxCount))
       break
     }
+    case Demo.Gravity: {
+      ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter, eventHandlers } = makeGravityDemo(debugDraw, frameLimit))
+      break
+    }
     case Demo.WaveMachine: {
-      const { makeWaveMachineDemo } = await import('./demo/waveMachine');
       ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter, eventHandlers } = makeWaveMachineDemo(debugDraw, frameLimit))
       break
     }
