@@ -30,15 +30,27 @@ export const box2D: typeof Box2D & EmscriptenModule = await Box2DFactory({
  */
 export class LeakMitigator {
   private readonly instances = new Map<typeof Box2D.WrapperObject, Set<Box2D.WrapperObject>>()
-  recordLeak = <Class extends typeof Box2D.WrapperObject = typeof Box2D.WrapperObject>(
-    instance: InstanceType<Class>,
-    b2Class: Class
-  ): InstanceType<Class> => {
+  recordLeak = <Instance extends Box2D.WrapperObject>(
+    instance: Instance,
+    b2Class: typeof Box2D.WrapperObject = box2D.getClass(instance)
+  ): Instance => {
     const instances = this.instances.get(b2Class) ?? new Set()
     instances.add(instance)
     this.instances.set(b2Class, instances)
     return instance
   }
+
+  safeWrapPointer = <
+  TargetClass extends typeof Box2D.WrapperObject & (
+    new (...args: any[]) => InstanceType<TargetClass>
+  ) = typeof Box2D.WrapperObject>(
+    pointer: number,
+    targetType?: TargetClass
+  ): InstanceType<TargetClass> =>
+    this.recordLeak(
+      box2D.wrapPointer(pointer, targetType),
+      targetType
+    )
 
   freeLeaked = (): void => {
     const { getCache, getPointer } = box2D

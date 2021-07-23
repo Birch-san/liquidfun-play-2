@@ -11,12 +11,8 @@ export const makeWaveMachineDemo = (
   const {
     b2_dynamicBody,
     b2AABB,
-    b2Body,
     b2BodyDef,
-    b2Fixture,
     b2Vec2,
-    b2Joint,
-    b2ParticleGroup,
     b2ParticleGroupDef,
     b2ParticleSystem,
     b2ParticleSystemDef,
@@ -28,13 +24,12 @@ export const makeWaveMachineDemo = (
     castObject,
     destroy,
     getPointer,
-    wrapPointer,
     HEAPF32,
     NULL
   } = box2D
 
   const leakMitigator = new LeakMitigator()
-  const { recordLeak, freeLeaked } = leakMitigator
+  const { freeLeaked, recordLeak, safeWrapPointer } = leakMitigator
   const gravity = new b2Vec2(0, 10)
   const world = new b2World(gravity)
   destroy(gravity)
@@ -61,7 +56,7 @@ export const makeWaveMachineDemo = (
   ]) {
     temp.Set(x, y)
     shape.SetAsBox(hx, hy, temp, 0)
-    recordLeak(body.CreateFixture(shape, 5), b2Fixture)
+    recordLeak(body.CreateFixture(shape, 5))
   }
 
   const jd = new b2RevoluteJointDef()
@@ -70,22 +65,22 @@ export const makeWaveMachineDemo = (
   jd.enableMotor = true
   temp.Set(0, 1)
   jd.Initialize(ground, body, temp)
-  const jointAbstract: Box2D.b2Joint = recordLeak(world.CreateJoint(jd), b2Joint)
-  const joint: Box2D.b2RevoluteJoint = recordLeak(castObject(jointAbstract, b2RevoluteJoint), b2RevoluteJoint)
+  const jointAbstract: Box2D.b2Joint = recordLeak(world.CreateJoint(jd))
+  const joint: Box2D.b2RevoluteJoint = recordLeak(castObject(jointAbstract, b2RevoluteJoint))
   destroy(jd)
 
   const psd = new b2ParticleSystemDef()
   psd.radius = 0.025
   psd.dampingStrength = 0.2
 
-  const particleSystem: Box2D.b2ParticleSystem = recordLeak(world.CreateParticleSystem(psd), b2ParticleSystem)
+  const particleSystem: Box2D.b2ParticleSystem = recordLeak(world.CreateParticleSystem(psd))
   destroy(psd)
 
   temp.Set(0, 1)
   shape.SetAsBox(0.9, 0.9, temp, 0)
   const particleGroupDef = new b2ParticleGroupDef()
   particleGroupDef.shape = shape
-  recordLeak(particleSystem.CreateParticleGroup(particleGroupDef), b2ParticleGroup)
+  recordLeak(particleSystem.CreateParticleGroup(particleGroupDef))
   destroy(particleGroupDef)
   destroy(shape)
   destroy(temp)
@@ -129,8 +124,8 @@ export const makeWaveMachineDemo = (
   Partial<Box2D.JSQueryCallback>
   >(new JSQueryCallback(), {
     ReportParticle (particleSystem_p: number, index: number): boolean {
-      const particleSystem: Box2D.b2ParticleSystem = recordLeak(wrapPointer(particleSystem_p, b2ParticleSystem), b2ParticleSystem)
-      const positionBuffer: Box2D.b2Vec2 = recordLeak(particleSystem.GetPositionBuffer(), b2Vec2)
+      const particleSystem: Box2D.b2ParticleSystem = safeWrapPointer(particleSystem_p, b2ParticleSystem)
+      const positionBuffer: Box2D.b2Vec2 = recordLeak(particleSystem.GetPositionBuffer())
       const position_p = getPointer(positionBuffer) + index * 8
       const pos_x = HEAPF32[position_p >> 2]
       const pos_y = HEAPF32[position_p + 4 >> 2]
@@ -196,10 +191,10 @@ export const makeWaveMachineDemo = (
       translate(mat, mat, pos)
     },
     destroyDemo: (): void => {
-      for (let body = recordLeak(world.GetBodyList(), b2Body); getPointer(body) !== getPointer(NULL); body = recordLeak(body.GetNext(), b2Body)) {
+      for (let body = recordLeak(world.GetBodyList()); getPointer(body) !== getPointer(NULL); body = recordLeak(body.GetNext())) {
         world.DestroyBody(body)
       }
-      for (let joint = recordLeak(world.GetJointList(), b2Joint); getPointer(joint) !== getPointer(NULL); joint = recordLeak(joint.GetNext(), b2Joint)) {
+      for (let joint = recordLeak(world.GetJointList()); getPointer(joint) !== getPointer(NULL); joint = recordLeak(joint.GetNext())) {
         world.DestroyJoint(joint)
       }
       world.DestroyParticleSystem(particleSystem)
