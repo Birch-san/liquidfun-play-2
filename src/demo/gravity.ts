@@ -72,7 +72,7 @@ export const makeGravityDemo = (
 
   const particleRadiusNominal = 0.025
   const psd = new b2ParticleSystemDef()
-  psd.maxCount = 50
+  // psd.maxCount = 100
   psd.radius = particleRadiusNominal
   psd.dampingStrength = 0.2
 
@@ -208,7 +208,8 @@ export const makeGravityDemo = (
   destroy(circleShape)
 
   const earthRadiusMetres = 6371009
-  const distScale = 6371009 / circleGravitySources[0].radius
+  const distScale = earthRadiusMetres / circleGravitySources[0].radius
+  console.log(particleRadiusNominal * distScale)
 
   const particlePos = vec2.create()
   const posDelta = vec2.create()
@@ -280,14 +281,6 @@ export const makeGravityDemo = (
     return pressure / (0.2869 * (temperature + 273.1))
   }
 
-  // space shuttle is 37m long, so radius of 18.5.
-  // our particles have radius 0.025 (psd.radius).
-  // so want to scale distances by 740x
-  // or take Earth's atmosphere height (150000m)
-  // and scale to our desired atmosphere height (0.5m)
-  // so scale distances as such.
-  const distanceScale = 150000 / 0.5
-
   const particleVel = vec2.create()
   // based on Jon Renner's 'Air Resistance in Box2D'
   // https://ilearnsomethings.blogspot.com/2013/05/air-resistance-in-box2d.html
@@ -349,9 +342,9 @@ export const makeGravityDemo = (
         world.QueryAABB(queryCallback, aabb)
       }
       applyGravity()
-      // applyDrag()
-      // TODO: can we set position/velocity iterations to 0?
-      world.Step(intervalSecs, 1, 1, particleIterations)
+      applyDrag()
+      // note: no position/velocity iterations at all
+      world.Step(intervalSecs, 0, 0, particleIterations)
     },
     getPixelsPerMeter: () => pixelsPerMeter,
     matrixMutator: (mat: mat3, canvasWidth: number, canvasHeight: number): void => {
