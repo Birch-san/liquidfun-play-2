@@ -164,7 +164,7 @@ export const makeGravityDemo = (
   const radiusToVolume = (radius: number): number =>
     4 / 3 * Math.PI * radius ** 3
 
-  const ourEarthRadiusMetres = 1
+  const ourEarthRadiusMetres = 0.8
   const actualEarthRadiusMetres = 6371009
   const distScale = actualEarthRadiusMetres / ourEarthRadiusMetres
   const earthAtmosphereHeight = 150000
@@ -213,6 +213,10 @@ export const makeGravityDemo = (
       atmosphereHeightCoeff: atmosphereHeight * distScale / earthAtmosphereHeight
     }
   })
+  // const planetRadii = new Float32Array(circleGravitySources.map(({ radius }: CircleGravitySource): number => radius))
+  // .flatMap() would be more fun way, but would need polyfill for semi-recent Safari (11)
+  // eslint-disable-next-line no-sequences
+  // const planetPositions = new Float32Array(circleGravitySources.reduce<number[]>((acc, { position: [x, y] }: CircleGravitySource) => (acc.push(x, y), acc), []))
   destroy(temp)
   // destroy(massData)
   destroy(bodyDef)
@@ -401,6 +405,8 @@ export const makeGravityDemo = (
       },
       onMouseMove: (clickPos: ClickPos): void => {
         updateMousePos(clickPos)
+        const { x, y } = mousePos
+        console.log(x, y)
       }
     }
   }

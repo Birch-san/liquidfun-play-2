@@ -108,6 +108,37 @@ class GrowableQuadIndexArray extends GrowableTypedArray<Uint16Array> {
 }
 export const growableQuadIndexArray = new GrowableQuadIndexArray()
 
+export class GrowableColourArray extends GrowableTypedArray<Float32Array> {
+  constructor () {
+    const floatsPerColour = 4
+    super(Float32Array, floatsPerColour)
+  }
+
+  emplaceWithoutRealloc (
+    r: number,
+    g: number,
+    b: number,
+    a: number
+  ): void {
+    this.buffer[this.length * this.elemSize] = r
+    this.buffer[this.length * this.elemSize + 1] = g
+    this.buffer[this.length * this.elemSize + 2] = b
+    this.buffer[this.length * this.elemSize + 3] = a
+    this.length++
+  }
+
+  emplace (
+    r: number,
+    g: number,
+    b: number,
+    a: number
+  ): void {
+    this.ensureFits(this.length + 1)
+    this.emplaceWithoutRealloc(r, g, b, a)
+  }
+}
+export const growableColourArray = new GrowableColourArray()
+
 export class GrowableVec2Array extends GrowableTypedArray<Float32Array> {
   constructor () {
     const floatsPerVec2 = 2
@@ -119,6 +150,11 @@ export class GrowableVec2Array extends GrowableTypedArray<Float32Array> {
     this.buffer[this.length * this.elemSize + 1] = y
     this.length++
   }
+
+  emplace (x: number, y: number): void {
+    this.ensureFits(this.length + 1)
+    this.emplaceWithoutRealloc(x, y)
+  }
 }
 
 export class GrowableRadiusArray extends GrowableTypedArray<Float32Array> {
@@ -126,8 +162,11 @@ export class GrowableRadiusArray extends GrowableTypedArray<Float32Array> {
     super(Float32Array, 1)
   }
 
-  fill (radius: number): void {
-    this.buffer.fill(radius)
+  emplace (radius: number): void {
+    const newLength = this.length + 1
+    this.ensureFits(newLength)
+    this.buffer[this.length * this.elemSize] = radius
+    this.length = newLength
   }
 }
 
@@ -161,4 +200,6 @@ export class GrowableRandomRadiusArray extends GrowableTypedArray<Float32Array> 
 
 export const growableVec2Array = new GrowableVec2Array()
 export const circleCentreArray = new GrowableVec2Array()
+export const circleRadiusArray = new GrowableRadiusArray()
+export const particleCentreArray = new GrowableVec2Array()
 export const randomRadiusArray = new GrowableRandomRadiusArray()

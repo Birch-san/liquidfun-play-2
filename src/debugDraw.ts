@@ -1,5 +1,5 @@
-import type { GrowableQuadArray, GrowableRandomRadiusArray, GrowableVec2Array } from './growableTypedArray'
-import { circleCentreArray, growableQuadArray, growableVec2Array, randomRadiusArray } from './growableTypedArray'
+import type { GrowableColourArray, GrowableQuadArray, GrowableRadiusArray, GrowableRandomRadiusArray, GrowableVec2Array } from './growableTypedArray'
+import { circleCentreArray, circleRadiusArray, particleCentreArray, growableColourArray, growableQuadArray, growableVec2Array, randomRadiusArray } from './growableTypedArray'
 
 const { box2D } = await import('./box2d')
 const {
@@ -24,10 +24,28 @@ const DrawSolidCircle: Box2D.JSDraw['DrawSolidCircle'] =
 (center_p: number, radius: number, axis_p: number, color_p: number): void => {
   // const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
   // const center: Box2D.b2Vec2 = wrapPointer(center_p, b2Vec2)
+  // intentionally not implementing rendering of axis
   // const axis: Box2D.b2Vec2 = wrapPointer(axis_p, b2Vec2)
+  drawBuffer.circles.centres.emplace(
+    HEAPF32[center_p >> 2],
+    HEAPF32[center_p + 4 >> 2]
+  )
+  drawBuffer.circles.radii.emplace(radius)
+  drawBuffer.circles.colours.emplace(
+    HEAPF32[color_p >> 2],
+    HEAPF32[color_p + 4 >> 2],
+    HEAPF32[color_p + 8 >> 2],
+    HEAPF32[color_p + 12 >> 2]
+  )
 }
 
 export interface CircleBuffers {
+  centres: GrowableVec2Array
+  colours: GrowableColourArray
+  radii: GrowableRadiusArray
+}
+
+export interface ParticleBuffers {
   centres: GrowableVec2Array
   radii: GrowableRandomRadiusArray
   systemRadius: number
@@ -37,12 +55,18 @@ export interface CircleBuffers {
 export interface DrawBuffer {
   boxes: GrowableQuadArray
   circles: CircleBuffers
+  particles: ParticleBuffers
   lineVertices: GrowableVec2Array
 }
 export const drawBuffer: DrawBuffer = {
   boxes: growableQuadArray,
   circles: {
     centres: circleCentreArray,
+    radii: circleRadiusArray,
+    colours: growableColourArray
+  },
+  particles: {
+    centres: particleCentreArray,
     radii: randomRadiusArray,
     systemRadius: 1,
     color: new Float32Array([0xff, 0xff, 0xff, 0xff])
@@ -50,9 +74,12 @@ export const drawBuffer: DrawBuffer = {
   lineVertices: growableVec2Array
 }
 export const flushDrawBuffer = (): void => {
-  const { boxes, circles, lineVertices } = drawBuffer
+  const { boxes, circles, particles, lineVertices } = drawBuffer
   boxes.length = 0
   circles.centres.length = 0
+  circles.radii.length = 0
+  circles.colours.length = 0
+  particles.centres.length = 0
   lineVertices.length = 0
 }
 
@@ -105,13 +132,13 @@ Partial<Box2D.JSDraw>
   },
   DrawParticles: (centers_p: number, radius: number, colors_p: number, count: number): void => {
     // const color: Box2D.b2Color = wrapPointer(colors_p, b2Color)
-    drawBuffer.circles.centres.ensureFits(count)
-    drawBuffer.circles.radii.ensureFits(count)
+    drawBuffer.particles.centres.ensureFits(count)
+    drawBuffer.particles.radii.ensureFits(count)
     // does the creation of this ArrayBuffer view result in garbage?
-    drawBuffer.circles.centres.set(new Float32Array(HEAPF32.buffer, centers_p, count * drawBuffer.circles.centres.elemSize))
-    drawBuffer.circles.centres.length = count
-    drawBuffer.circles.radii.length = count
-    drawBuffer.circles.systemRadius = radius
+    drawBuffer.particles.centres.set(new Float32Array(HEAPF32.buffer, centers_p, count * drawBuffer.particles.centres.elemSize))
+    drawBuffer.particles.centres.length = count
+    drawBuffer.particles.radii.length = count
+    drawBuffer.particles.systemRadius = radius
     // drawBuffer.circles.radii.fill(radius)
     // the colour's just black, so this wasn't very impressive
     // drawBuffer.circles.color[0] = HEAPF32[colors_p >> 2]

@@ -1,5 +1,5 @@
 import { growableQuadIndexArray } from './growableTypedArray'
-import type { CircleBuffers, DrawBuffer } from './debugDraw'
+import type { CircleBuffers, DrawBuffer, ParticleBuffers } from './debugDraw'
 import { mat3, vec4 } from 'gl-matrix'
 
 const getAssetURL = (asset: string): URL => new URL(`../../${asset}`, import.meta.url)
@@ -35,7 +35,8 @@ const shaderSources = {
     point: await getVertexShaderSource('point'),
     texture: await getVertexShaderSource('texture'),
     general: await getVertexShaderSource('general'),
-    circle: await getVertexShaderSource('circle')
+    circle: await getVertexShaderSource('circle'),
+    planet: await getVertexShaderSource('planet')
   },
   fragment: {
     blob: await getFragmentShaderSource('blob'),
@@ -45,7 +46,8 @@ const shaderSources = {
     point: await getFragmentShaderSource('point'),
     texture: await getFragmentShaderSource('texture'),
     general: await getFragmentShaderSource('general'),
-    circle: await getFragmentShaderSource('circle')
+    circle: await getFragmentShaderSource('circle'),
+    planet: await getFragmentShaderSource('planet')
   }
 }
 
@@ -160,7 +162,8 @@ export const onContext = ({
     point: link([compiledShaders.vertex.point, compiledShaders.fragment.point]),
     texture: link([compiledShaders.vertex.texture, compiledShaders.fragment.texture]),
     general: link([compiledShaders.vertex.general, compiledShaders.fragment.general]),
-    circle: link([compiledShaders.vertex.circle, compiledShaders.fragment.circle])
+    circle: link([compiledShaders.vertex.circle, compiledShaders.fragment.circle]),
+    planet: link([compiledShaders.vertex.planet, compiledShaders.fragment.planet])
   }
 
   const initBuffer = (target: GLenum, data: BufferSource): WebGLBuffer => {
@@ -266,6 +269,10 @@ export const onContext = ({
     circle: {
       attrib: ['a_position'] as const,
       uniform: ['u_matrix', 'u_color', 'u_diameter', 'u_edge_size', 'u_edge_color'] as const
+    },
+    planet: {
+      attrib: ['a_position', 'a_radius', 'a_colour'] as const,
+      uniform: ['u_matrix', 'u_pixels_per_metre', 'u_edge_size', 'u_edge_colour'] as const
     }
   })
 
@@ -694,20 +701,53 @@ export const onContext = ({
   const noEffect = (
     metresToClipSpace: number,
     canvasToClipSpaceRatio: number,
-    circles: CircleBuffers,
-    circleBuffer: WebGLBuffer
+    particles: ParticleBuffers,
+    positionBuffer: WebGLBuffer
   ): void => {
     gl.useProgram(programs.circle)
-    gl.uniform1f(locations.circle.uniform.u_diameter, 2 * circles.systemRadius * metresToClipSpace)
+    gl.uniform1f(locations.circle.uniform.u_diameter, 2 * particles.systemRadius * metresToClipSpace)
     gl.uniform1f(locations.circle.uniform.u_edge_size, circleEdgeThicknessPx * canvasToClipSpaceRatio)
     gl.uniform4fv(locations.circle.uniform.u_edge_color, circleEdgeColor)
-    gl.uniform4fv(locations.circle.uniform.u_color, circles.color)
+    gl.uniform4fv(locations.circle.uniform.u_color, particles.color)
     gl.uniformMatrix3fv(locations.circle.uniform.u_matrix, false, mat)
-    gl.bindBuffer(gl.ARRAY_BUFFER, circleBuffer)
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
     gl.vertexAttribPointer(locations.circle.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(locations.circle.attrib.a_position)
-    gl.drawArrays(gl.POINTS, 0, circles.centres.length)
+    gl.drawArrays(gl.POINTS, 0, particles.centres.length)
     gl.disableVertexAttribArray(locations.circle.attrib.a_position)
+    gl.bindBuffer(gl.ARRAY_BUFFER, null)
+  }
+
+  const drawCircles = (
+    pixelsPerMetre: number,
+    canvasToClipSpaceRatio: number,
+    circleCount: number,
+    positionBuffer: WebGLBuffer,
+    radiusBuffer: WebGLBuffer,
+    colourBuffer: WebGLBuffer
+  ): void => {
+    gl.useProgram(programs.planet)
+    gl.uniform1f(locations.planet.uniform.u_pixels_per_metre, pixelsPerMetre)
+    gl.uniform1f(locations.planet.uniform.u_edge_size, circleEdgeThicknessPx * canvasToClipSpaceRatio)
+    gl.uniform4fv(locations.planet.uniform.u_edge_colour, circleEdgeColor)
+    gl.uniformMatrix3fv(locations.planet.uniform.u_matrix, false, mat)
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
+    gl.vertexAttribPointer(locations.planet.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(locations.planet.attrib.a_position)
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, radiusBuffer)
+    gl.vertexAttribPointer(locations.planet.attrib.a_radius, 1, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(locations.planet.attrib.a_radius)
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, colourBuffer)
+    gl.vertexAttribPointer(locations.planet.attrib.a_colour, 4, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(locations.planet.attrib.a_colour)
+
+    gl.drawArrays(gl.POINTS, 0, circleCount)
+    gl.disableVertexAttribArray(locations.planet.attrib.a_position)
+    gl.disableVertexAttribArray(locations.planet.attrib.a_radius)
+    gl.disableVertexAttribArray(locations.planet.attrib.a_colour)
     gl.bindBuffer(gl.ARRAY_BUFFER, null)
   }
 
@@ -737,7 +777,7 @@ export const onContext = ({
   const draw: Draw = (effect: Effect, frameDeltaMs: number): void => {
     totalMs += frameDeltaMs
     const drawBuffer: DrawBuffer = getDrawBuffer()
-    const { boxes, lineVertices, circles } = drawBuffer
+    const { boxes, lineVertices, particles, circles } = drawBuffer
 
     const vertexBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, boxes.getView())
 
@@ -758,8 +798,12 @@ export const onContext = ({
 
     const lineBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, lineVertices.getView())
 
-    const circleBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, circles.centres.getView())
+    const particleCentreBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, particles.centres.getView())
+    const particleRadiusBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, particles.radii.getView())
+
+    const circleCentreBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, circles.centres.getView())
     const circleRadiusBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, circles.radii.getView())
+    const circleColourBuffer: WebGLBuffer = initBuffer(gl.ARRAY_BUFFER, circles.colours.getView())
 
     gl.disable(gl.DEPTH_TEST)
     gl.depthMask(false)
@@ -769,38 +813,38 @@ export const onContext = ({
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
 
     updateMatrix()
-    const pixelsPerMeter = getPixelsPerMeter()
+    const pixelsPerMetre = getPixelsPerMeter()
     // whatever's greater out of "canvas height -> clip space" or "canvas width -> clip space"
     const canvasToClipSpaceRatio = Math.max(mat[0], -mat[4])
-    const metresToClipSpace = pixelsPerMeter * canvasToClipSpaceRatio
+    const metresToClipSpace = pixelsPerMetre * canvasToClipSpaceRatio
 
-    if (circles.centres.length > 0) {
+    if (particles.centres.length > 0) {
       switch (effect) {
         case Effect.TemporalBlend:
           temporalBlendEffect(
             metresToClipSpace,
-            circleBuffer,
-            circleRadiusBuffer,
-            circles.centres.length,
-            circles.systemRadius
+            particleCentreBuffer,
+            particleRadiusBuffer,
+            particles.centres.length,
+            particles.systemRadius
           )
           break
         case Effect.Refraction:
           normalsRefractEffect(
             totalMs,
             metresToClipSpace,
-            circleBuffer,
-            circleRadiusBuffer,
-            circles.centres.length,
-            circles.systemRadius
+            particleCentreBuffer,
+            particleRadiusBuffer,
+            particles.centres.length,
+            particles.systemRadius
           )
           break
         case Effect.None:
           noEffect(
             metresToClipSpace,
             canvasToClipSpaceRatio,
-            circles,
-            circleBuffer
+            particles,
+            particleCentreBuffer
           )
           break
         default:
@@ -829,6 +873,17 @@ export const onContext = ({
       gl.drawArrays(gl.LINES, 0, lineVertices.length)
       gl.disableVertexAttribArray(locations.general.attrib.a_position)
       gl.bindBuffer(gl.ARRAY_BUFFER, null)
+    }
+
+    if (circles.centres.length > 0) {
+      drawCircles(
+        pixelsPerMetre,
+        canvasToClipSpaceRatio,
+        circles.centres.length,
+        circleCentreBuffer,
+        circleRadiusBuffer,
+        circleColourBuffer
+      )
     }
 
     flushDrawBuffer()
