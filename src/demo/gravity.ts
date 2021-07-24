@@ -171,6 +171,9 @@ export const makeGravityDemo = (
   const circleGravitySourceSpecs: CircleGravitySourceSpec[] = [{
     position: vec2.fromValues(1, 1),
     radius: 0.5
+  }, {
+    position: vec2.fromValues(-1, 0.7),
+    radius: 0.3
   }]
   const density = 1
   const massData = new b2MassData()
