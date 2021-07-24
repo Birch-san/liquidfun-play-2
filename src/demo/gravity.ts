@@ -238,12 +238,8 @@ export const makeGravityDemo = (
       circleGravitySources.reduce((totalForce: vec2, { position, mass3D, force }: CircleGravitySource): vec2 => {
         set(force, 0, 0)
         sub(posDelta, position, particlePos)
-        // const distSquared = sqrLen(posDelta)
-        // TODO: optimize where the scaling happens so we can use sqrLen again
-        const distNominal = len(posDelta)
-        const dist = distNominal * distScale
-        // console.log(dist)
-        const distSquared = dist ** 2
+        scale(posDelta, posDelta, distScale)
+        const distSquared = sqrLen(posDelta)
         const massProduct = particleMass3D * mass3D
         const forceMagnitude = (gravitationalConstant * massProduct) / distSquared
         normalize(force, posDelta)
