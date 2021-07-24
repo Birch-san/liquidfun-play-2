@@ -153,6 +153,10 @@ export class GrowableRandomRadiusArray extends GrowableTypedArray<Float32Array> 
       })
     }
   }
+
+  get (ix: number): number {
+    return this.buffer[ix]
+  }
 }
 
 export const growableVec2Array = new GrowableVec2Array()

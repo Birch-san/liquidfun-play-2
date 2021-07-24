@@ -1,4 +1,5 @@
 import type { ClickPos, DemoResources } from './index'
+import { randomRadiusArray } from '../growableTypedArray'
 import { vec2, mat3 } from 'gl-matrix'
 import { LeakMitigator } from '../box2d'
 
@@ -11,7 +12,9 @@ export const makeGravityDemo = (
     b2_dynamicBody,
     b2AABB,
     b2BodyDef,
+    b2CircleShape,
     b2Vec2,
+    b2MassData,
     b2ParticleGroupDef,
     b2ParticleSystem,
     b2ParticleSystemDef,
@@ -81,7 +84,6 @@ export const makeGravityDemo = (
   recordLeak(particleSystem.CreateParticleGroup(particleGroupDef))
   destroy(particleGroupDef)
   destroy(shape)
-  destroy(temp)
 
   let timeElapsedSecs = 0
 
@@ -157,6 +159,83 @@ export const makeGravityDemo = (
     }
   }
 
+  interface CircleGravitySourceSpec {
+    position: vec2
+    radius: number
+  }
+  interface CircleGravitySource {
+    position: vec2
+    force: vec2
+    mass: number
+  }
+  const circleGravitySourceSpecs: CircleGravitySourceSpec[] = [{
+    position: vec2.fromValues(1, 1),
+    radius: 0.5
+  }]
+  const density = 1
+  const massData = new b2MassData()
+  const bodyDef = new b2BodyDef()
+  const circleShape = new b2CircleShape()
+  const circleGravitySources: CircleGravitySource[] =
+  circleGravitySourceSpecs.map(({ position, radius }: CircleGravitySourceSpec): CircleGravitySource => {
+    const body: Box2D.b2Body = recordLeak(world.CreateBody(bodyDef))
+    circleShape.set_m_radius(radius)
+    circleShape.ComputeMass(massData, density)
+    const [x, y] = position
+    temp.Set(x, y)
+    body.SetTransform(temp, 0)
+    const fixture: Box2D.b2Fixture = recordLeak(body.CreateFixture(circleShape, 0))
+    fixture.SetFriction(0.1)
+    return {
+      position,
+      force: vec2.create(),
+      mass: massData.mass
+    }
+  })
+  destroy(temp)
+  destroy(massData)
+  destroy(bodyDef)
+  destroy(circleShape)
+
+  const particlePos = vec2.create()
+  const posDelta = vec2.create()
+  const totalForce = vec2.create()
+  const b2Force = new b2Vec2(0, 0)
+  const particleMassNominal = 1
+
+  const applyGravity = (): void => {
+    const { add, set, sub, sqrLen, len, normalize, scale } = vec2
+    for (let i = 0; i < particleSystem.GetParticleCount(); i++) {
+      const particleMassCoeff = randomRadiusArray.get(i)
+      const particleMass = particleMassNominal * particleMassCoeff
+      const positionBuffer: Box2D.b2Vec2 = recordLeak(particleSystem.GetPositionBuffer())
+      const position_p = getPointer(positionBuffer) + i * 8
+      set(
+        particlePos,
+        HEAPF32[position_p >> 2],
+        HEAPF32[position_p + 4 >> 2]
+      )
+      set(totalForce, 0, 0)
+      circleGravitySources.reduce((totalForce: vec2, { position, mass, force }: CircleGravitySource): vec2 => {
+        set(force, 0, 0)
+        sub(posDelta, position, particlePos)
+        const distSquared = sqrLen(posDelta)
+        const massCoeff = particleMass * mass
+        const forceMagnitude = 1 / distSquared * massCoeff
+        normalize(force, posDelta)
+        scale(force, force, forceMagnitude)
+        add(totalForce, totalForce, force)
+        return totalForce
+      }, totalForce)
+      const magnitude = Math.min(len(totalForce), 10)
+      normalize(totalForce, totalForce)
+      scale(totalForce, totalForce, magnitude)
+      const [x, y] = totalForce
+      b2Force.Set(x, y)
+      particleSystem.ParticleApplyForce(i, b2Force)
+    }
+  }
+
   return {
     world,
     worldStep: (intervalMs: number): void => {
@@ -168,6 +247,7 @@ export const makeGravityDemo = (
       if (mouseIsDown) {
         world.QueryAABB(queryCallback, aabb)
       }
+      applyGravity()
       world.Step(intervalSecs, 1, 1, particleIterations)
     },
     getPixelsPerMeter: () => pixelsPerMeter,
@@ -200,6 +280,7 @@ export const makeGravityDemo = (
       destroy(upperBound)
       destroy(aabb)
       destroy(impulse)
+      destroy(b2Force)
       freeLeaked()
     },
     eventHandlers: {
