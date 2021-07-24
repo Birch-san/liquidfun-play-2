@@ -209,13 +209,11 @@ export const makeGravityDemo = (
 
   const earthRadiusMetres = 6371009
   const distScale = earthRadiusMetres / circleGravitySources[0].radius
-  console.log(particleRadiusNominal * distScale)
 
   const particlePos = vec2.create()
   const posDelta = vec2.create()
   const totalForce = vec2.create()
   const b2Force = new b2Vec2(0, 0)
-  // const particleMassNominal = 1
   // kg/m^3
   const particleDensity3D = 997.048
   const particleMass3D = radiusToVolume(particleRadiusNominal * distScale) * particleDensity3D
@@ -225,6 +223,10 @@ export const makeGravityDemo = (
     const positionBuffer: Box2D.b2Vec2 = recordLeak(particleSystem.GetPositionBuffer())
     const { add, set, sub, sqrLen, len, normalize, scale } = vec2
     for (let i = 0; i < particleSystem.GetParticleCount(); i++) {
+      // in some shaders we render the particles artifically bigger
+      // if we wanted to calculate their masses based on their render size, we could use
+      // the commented-out approach. but since the actual physics is based on their nominal radius,
+      // it'd be unrealistic for our gravity to care about their rendered radius.
       // const particleRadiusCoeff = randomRadiusArray.get(i)
       // const particleRadius = particleRadiusNominal * particleRadiusCoeff
       // const particleVolume = radiusToVolume(particleRadius)
@@ -260,9 +262,13 @@ export const makeGravityDemo = (
   // Implementation ported from Zach Lynn's (MIT-licensed) SpaceSim
   // https://github.com/zlynn1990/SpaceSim/blob/master/src/SpaceSim/SolarSystem/Planets/Earth.cs#L54
   // Realistic density model based off https://www.grc.nasa.gov/www/k-12/rocket/atmos.html
-  const atmosphereHeight = 150000
+  const earthAtmosphereHeight = 150000
+  // simulate a taller atmosphere than Earth's.
+  // otherwise our particles' radius already puts their center above top of atmopshere
+  const fakeAtmosphereHeight = 0.5 * distScale
+  const stretchAtmosphere = fakeAtmosphereHeight / earthAtmosphereHeight
   const getAtmosphericDensity = (altitude: number): number => {
-    if (altitude > atmosphereHeight) return 0
+    if (altitude > earthAtmosphereHeight) return 0
 
     let temperature: number | undefined
     let pressure: number | undefined
@@ -285,8 +291,8 @@ export const makeGravityDemo = (
   // based on Jon Renner's 'Air Resistance in Box2D'
   // https://ilearnsomethings.blogspot.com/2013/05/air-resistance-in-box2d.html
   const A = 1
-  const Cd = 0.05 // 1.05 for a square, 0.47 for a circle
-  // const Cd = 0.47 // 1.05 for a square, 0.47 for a circle
+  const Cd = 0.47 // 0.05 for a sleek object, 1.05 for a square, 0.47 for a circle
+
   const applyDrag = (): void => {
     const positionBuffer: Box2D.b2Vec2 = recordLeak(particleSystem.GetPositionBuffer())
     const velocityBuffer: Box2D.b2Vec2 = recordLeak(particleSystem.GetVelocityBuffer())
@@ -309,10 +315,9 @@ export const makeGravityDemo = (
         set(force, 0, 0)
         sub(posDelta, position, particlePos)
         const altitude = len(posDelta) - radius
-        const atmosphericDensity = getAtmosphericDensity(altitude * distScale)
+        const atmosphericDensity = getAtmosphericDensity(altitude * distScale / stretchAtmosphere)
 
         const p = atmosphericDensity
-        // const p = 1
         const v = sqrLen(particleVel) // speed squared
         const dragForce = 0.5 * p * v * Cd * A
 
@@ -342,7 +347,12 @@ export const makeGravityDemo = (
         world.QueryAABB(queryCallback, aabb)
       }
       applyGravity()
-      applyDrag()
+
+      // drag disabled because unless we stretch the atmosphere to be unintuitively tall,
+      // most of the particles will be above the atmosphere's effects anyway.
+      // it's not free to calculate & apply hundreds of forces.
+      // applyDrag()
+
       // note: no position/velocity iterations at all
       world.Step(intervalSecs, 0, 0, particleIterations)
     },
