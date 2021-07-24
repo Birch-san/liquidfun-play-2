@@ -1,5 +1,5 @@
 import type { ClickPos, DemoResources } from './index'
-import { randomRadiusArray } from '../growableTypedArray'
+// import { randomRadiusArray } from '../growableTypedArray'
 import { vec2, mat3 } from 'gl-matrix'
 import { LeakMitigator } from '../box2d'
 
@@ -72,7 +72,7 @@ export const makeGravityDemo = (
 
   const particleRadiusNominal = 0.025
   const psd = new b2ParticleSystemDef()
-  // psd.maxCount = 100
+  // psd.maxCount = 500
   psd.radius = particleRadiusNominal
   psd.dampingStrength = 0.2
 
@@ -163,29 +163,39 @@ export const makeGravityDemo = (
 
   const radiusToVolume = (radius: number): number =>
     4 / 3 * Math.PI * radius ** 3
+
+  const ourEarthRadiusMetres = 1
+  const actualEarthRadiusMetres = 6371009
+  const distScale = actualEarthRadiusMetres / ourEarthRadiusMetres
+  const earthAtmosphereHeight = 150000
   interface CircleGravitySourceSpec {
     position: vec2
     radius: number
+    atmosphereHeight: number
   }
-  interface CircleGravitySource extends CircleGravitySourceSpec {
+  interface CircleGravitySource {
+    position: vec2
+    radius: number
     force: vec2
     mass3D: number
+    atmosphereHeightCoeff: number
   }
   const circleGravitySourceSpecs: CircleGravitySourceSpec[] = [{
-    position: vec2.fromValues(1, 1),
-    radius: 0.5
+    position: vec2.fromValues(1, 1.5),
+    radius: ourEarthRadiusMetres,
+    atmosphereHeight: 0.5
   }, {
-    position: vec2.fromValues(-1, 0.7),
-    radius: 0.3
+    position: vec2.fromValues(-1, 0),
+    radius: 0.7,
+    atmosphereHeight: 0.5
   }]
-  // const density = 1
   // mean density in kg/m^3
   const earthDensity = 5515
   // const massData = new b2MassData()
   const bodyDef = new b2BodyDef()
   const circleShape = new b2CircleShape()
   const circleGravitySources: CircleGravitySource[] =
-  circleGravitySourceSpecs.map(({ position, radius }: CircleGravitySourceSpec): CircleGravitySource => {
+  circleGravitySourceSpecs.map(({ position, radius, atmosphereHeight }: CircleGravitySourceSpec): CircleGravitySource => {
     const body: Box2D.b2Body = recordLeak(world.CreateBody(bodyDef))
     circleShape.set_m_radius(radius)
     // circleShape.ComputeMass(massData, density)
@@ -198,17 +208,15 @@ export const makeGravityDemo = (
       position,
       radius,
       force: vec2.create(),
-      mass3D: radiusToVolume(radius) * earthDensity
+      mass3D: radiusToVolume(radius) * earthDensity,
       // mass: massData.mass
+      atmosphereHeightCoeff: atmosphereHeight * distScale / earthAtmosphereHeight
     }
   })
   destroy(temp)
   // destroy(massData)
   destroy(bodyDef)
   destroy(circleShape)
-
-  const earthRadiusMetres = 6371009
-  const distScale = earthRadiusMetres / circleGravitySources[0].radius
 
   const particlePos = vec2.create()
   const posDelta = vec2.create()
@@ -262,11 +270,6 @@ export const makeGravityDemo = (
   // Implementation ported from Zach Lynn's (MIT-licensed) SpaceSim
   // https://github.com/zlynn1990/SpaceSim/blob/master/src/SpaceSim/SolarSystem/Planets/Earth.cs#L54
   // Realistic density model based off https://www.grc.nasa.gov/www/k-12/rocket/atmos.html
-  const earthAtmosphereHeight = 150000
-  // simulate a taller atmosphere than Earth's.
-  // otherwise our particles' radius already puts their center above top of atmopshere
-  const fakeAtmosphereHeight = 0.5 * distScale
-  const stretchAtmosphere = fakeAtmosphereHeight / earthAtmosphereHeight
   const getAtmosphericDensity = (altitude: number): number => {
     if (altitude > earthAtmosphereHeight) return 0
 
@@ -311,11 +314,13 @@ export const makeGravityDemo = (
         HEAPF32[velocity_p + 4 >> 2]
       )
       set(totalForce, 0, 0)
-      circleGravitySources.reduce((totalForce: vec2, { position, force, radius }: CircleGravitySource): vec2 => {
+      circleGravitySources.reduce((totalForce: vec2, { position, force, radius, atmosphereHeightCoeff }: CircleGravitySource): vec2 => {
         set(force, 0, 0)
         sub(posDelta, position, particlePos)
         const altitude = len(posDelta) - radius
-        const atmosphericDensity = getAtmosphericDensity(altitude * distScale / stretchAtmosphere)
+        // simulate a taller atmosphere than Earth's
+        // since at the same scales, our particle's radius easily puts it above an Earth atmosphere
+        const atmosphericDensity = getAtmosphericDensity(altitude * distScale / atmosphereHeightCoeff)
 
         const p = atmosphericDensity
         const v = sqrLen(particleVel) // speed squared
@@ -348,9 +353,6 @@ export const makeGravityDemo = (
       }
       applyGravity()
 
-      // drag disabled because unless we stretch the atmosphere to be unintuitively tall,
-      // most of the particles will be above the atmosphere's effects anyway.
-      // it's not free to calculate & apply hundreds of forces.
       // applyDrag()
 
       // note: no position/velocity iterations at all
