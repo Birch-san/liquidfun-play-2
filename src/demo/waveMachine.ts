@@ -35,12 +35,12 @@ export const makeWaveMachineDemo = (
   world.SetDebugDraw(debugDraw)
 
   const bd = new b2BodyDef()
-  const ground: Box2D.b2Body = world.CreateBody(bd)
+  const ground: Box2D.b2Body = recordLeak(world.CreateBody(bd))
 
   bd.type = b2_dynamicBody
   bd.allowSleep = false
   bd.position.Set(0, 1)
-  const body: Box2D.b2Body = world.CreateBody(bd)
+  const body: Box2D.b2Body = recordLeak(world.CreateBody(bd))
   destroy(bd)
 
   const temp = new b2Vec2(0, 0)

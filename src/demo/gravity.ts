@@ -37,38 +37,38 @@ export const makeGravityDemo = (
 
   world.SetDebugDraw(debugDraw)
 
-  const bd = new b2BodyDef()
-  const ground: Box2D.b2Body = world.CreateBody(bd)
+  // const bd = new b2BodyDef()
+  // const ground: Box2D.b2Body = recordLeak(world.CreateBody(bd))
 
-  bd.type = b2_dynamicBody
-  bd.allowSleep = false
-  bd.position.Set(0, 1)
-  const body: Box2D.b2Body = world.CreateBody(bd)
-  destroy(bd)
+  // bd.type = b2_dynamicBody
+  // bd.allowSleep = false
+  // bd.position.Set(0, 1)
+  // const body: Box2D.b2Body = recordLeak(world.CreateBody(bd))
+  // destroy(bd)
 
   const temp = new b2Vec2(0, 0)
   const shape = new b2PolygonShape()
 
-  for (const [hx, hy, x, y] of [
-    [0.05, 1, 2, 0],
-    [0.05, 1, -2, 0],
-    [2, 0.05, 0, 1],
-    [2, 0.05, 0, -1]
-  ]) {
-    temp.Set(x, y)
-    shape.SetAsBox(hx, hy, temp, 0)
-    recordLeak(body.CreateFixture(shape, 5))
-  }
+  // for (const [hx, hy, x, y] of [
+  //   [0.05, 1, 2, 0],
+  //   [0.05, 1, -2, 0],
+  //   [2, 0.05, 0, 1],
+  //   [2, 0.05, 0, -1]
+  // ]) {
+  //   temp.Set(x, y)
+  //   shape.SetAsBox(hx, hy, temp, 0)
+  //   recordLeak(body.CreateFixture(shape, 5))
+  // }
 
-  const jd = new b2RevoluteJointDef()
-  jd.motorSpeed = 0.05 * Math.PI
-  jd.maxMotorTorque = 1e7
-  jd.enableMotor = true
-  temp.Set(0, 1)
-  jd.Initialize(ground, body, temp)
-  const jointAbstract: Box2D.b2Joint = recordLeak(world.CreateJoint(jd))
-  const joint: Box2D.b2RevoluteJoint = recordLeak(castObject(jointAbstract, b2RevoluteJoint))
-  destroy(jd)
+  // const jd = new b2RevoluteJointDef()
+  // jd.motorSpeed = 0.05 * Math.PI
+  // jd.maxMotorTorque = 1e7
+  // jd.enableMotor = true
+  // temp.Set(0, 1)
+  // jd.Initialize(ground, body, temp)
+  // const jointAbstract: Box2D.b2Joint = recordLeak(world.CreateJoint(jd))
+  // const joint: Box2D.b2RevoluteJoint = recordLeak(castObject(jointAbstract, b2RevoluteJoint))
+  // destroy(jd)
 
   const psd = new b2ParticleSystemDef()
   psd.radius = 0.025
@@ -207,11 +207,11 @@ export const makeGravityDemo = (
   const particleMassNominal = 1
 
   const applyGravity = (): void => {
+    const positionBuffer: Box2D.b2Vec2 = recordLeak(particleSystem.GetPositionBuffer())
     const { add, set, sub, sqrLen, len, normalize, scale } = vec2
     for (let i = 0; i < particleSystem.GetParticleCount(); i++) {
       const particleMassCoeff = randomRadiusArray.get(i)
       const particleMass = particleMassNominal * particleMassCoeff
-      const positionBuffer: Box2D.b2Vec2 = recordLeak(particleSystem.GetPositionBuffer())
       const position_p = getPointer(positionBuffer) + i * 8
       set(
         particlePos,
@@ -239,18 +239,100 @@ export const makeGravityDemo = (
     }
   }
 
+  // Implementation ported from Zach Lynn's (MIT-licensed) SpaceSim
+  // https://github.com/zlynn1990/SpaceSim/blob/master/src/SpaceSim/SolarSystem/Planets/Earth.cs#L54
+  // Realistic density model based off https://www.grc.nasa.gov/www/k-12/rocket/atmos.html
+  const atmosphereHeight = 150000
+  const getAtmosphericDensity = (altitude: number): number => {
+    if (altitude > atmosphereHeight) return 0
+
+    let temperature: number | undefined
+    let pressure: number | undefined
+
+    if (altitude > 25000) {
+      temperature = -131.21 + 0.00299 * altitude
+      pressure = 2.448 * Math.pow((temperature + 273.1) / 216.6, -11.388)
+    } else if (altitude > 11000) {
+      temperature = -56.46
+      pressure = 22.65 * Math.exp(1.73 - 0.000157 * altitude)
+    } else {
+      temperature = 15.04 - 0.00649 * altitude
+      pressure = 101.29 * Math.pow((temperature + 273.1) / 288.08, 5.256)
+    }
+
+    return pressure / (0.2869 * (temperature + 273.1))
+  }
+
+  // space shuttle is 37m long, so radius of 18.5.
+  // our particles have radius 0.025 (psd.radius).
+  // so want to scale distances by 740x
+  // or take Earth's atmosphere height (150000m)
+  // and scale to our desired atmosphere height (0.5m)
+  // so scale distances as such.
+  const distanceScale = 150000/0.5
+
+  const particleVel = vec2.create()
+  // based on Jon Renner's 'Air Resistance in Box2D'
+  // https://ilearnsomethings.blogspot.com/2013/05/air-resistance-in-box2d.html
+  const A = 1
+  const Cd = 0.05 // 1.05 for a square, 0.47 for a circle
+  // const Cd = 0.47 // 1.05 for a square, 0.47 for a circle
+  const applyDrag = (): void => {
+    const positionBuffer: Box2D.b2Vec2 = recordLeak(particleSystem.GetPositionBuffer())
+    const velocityBuffer: Box2D.b2Vec2 = recordLeak(particleSystem.GetVelocityBuffer())
+    const { add, set, sub, sqrLen, len, normalize, scale } = vec2
+    for (let i = 0; i < particleSystem.GetParticleCount(); i++) {
+      const position_p = getPointer(positionBuffer) + i * 8
+      const velocity_p = getPointer(velocityBuffer) + i * 8
+      set(
+        particlePos,
+        HEAPF32[position_p >> 2],
+        HEAPF32[position_p + 4 >> 2]
+      )
+      set(
+        particleVel,
+        HEAPF32[velocity_p >> 2],
+        HEAPF32[velocity_p + 4 >> 2]
+      )
+      set(totalForce, 0, 0)
+      circleGravitySources.reduce((totalForce: vec2, { position, force }: CircleGravitySource): vec2 => {
+        set(force, 0, 0)
+        sub(posDelta, position, particlePos)
+        const dist = len(posDelta)
+        const atmosphericDensity = getAtmosphericDensity(dist * distanceScale)
+
+        const p = atmosphericDensity
+        const v = sqrLen(particleVel) // speed squared
+        const dragForce = 0.5 * p * v * Cd * A
+
+        normalize(force, particleVel)
+        scale(force, force, -dragForce)
+        add(totalForce, totalForce, force)
+        return totalForce
+      }, totalForce)
+      const magnitude = Math.min(len(totalForce), 10)
+      normalize(totalForce, totalForce)
+      scale(totalForce, totalForce, magnitude)
+      const [x, y] = totalForce
+      b2Force.Set(x, y)
+      particleSystem.ParticleApplyForce(i, b2Force)
+    }
+  }
+
   return {
     world,
     worldStep: (intervalMs: number): void => {
       // 3 particle iterations seems to be enough to simulate a 60th of a second
       const particleIterations: number = Math.ceil(intervalMs / 3)
       const intervalSecs = intervalMs / 1000
-      timeElapsedSecs += intervalSecs
-      joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedSecs) * Math.PI)
+      // timeElapsedSecs += intervalSecs
+      // joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedSecs) * Math.PI)
       if (mouseIsDown) {
         world.QueryAABB(queryCallback, aabb)
       }
       applyGravity()
+      // applyDrag()
+      // TODO: can we set position/velocity iterations to 0?
       world.Step(intervalSecs, 1, 1, particleIterations)
     },
     getPixelsPerMeter: () => pixelsPerMeter,
