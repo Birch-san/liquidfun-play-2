@@ -70,8 +70,10 @@ export const makeGravityDemo = (
   // const joint: Box2D.b2RevoluteJoint = recordLeak(castObject(jointAbstract, b2RevoluteJoint))
   // destroy(jd)
 
+  const particleRadiusNominal = 0.025
   const psd = new b2ParticleSystemDef()
-  psd.radius = 0.025
+  psd.maxCount = 50
+  psd.radius = particleRadiusNominal
   psd.dampingStrength = 0.2
 
   const particleSystem: Box2D.b2ParticleSystem = recordLeak(world.CreateParticleSystem(psd))
@@ -159,14 +161,15 @@ export const makeGravityDemo = (
     }
   }
 
+  const radiusToVolume = (radius: number): number =>
+    4 / 3 * Math.PI * radius ** 3
   interface CircleGravitySourceSpec {
     position: vec2
     radius: number
   }
-  interface CircleGravitySource {
-    position: vec2
+  interface CircleGravitySource extends CircleGravitySourceSpec {
     force: vec2
-    mass: number
+    mass3D: number
   }
   const circleGravitySourceSpecs: CircleGravitySourceSpec[] = [{
     position: vec2.fromValues(1, 1),
@@ -175,15 +178,17 @@ export const makeGravityDemo = (
     position: vec2.fromValues(-1, 0.7),
     radius: 0.3
   }]
-  const density = 1
-  const massData = new b2MassData()
+  // const density = 1
+  // mean density in kg/m^3
+  const earthDensity = 5515
+  // const massData = new b2MassData()
   const bodyDef = new b2BodyDef()
   const circleShape = new b2CircleShape()
   const circleGravitySources: CircleGravitySource[] =
   circleGravitySourceSpecs.map(({ position, radius }: CircleGravitySourceSpec): CircleGravitySource => {
     const body: Box2D.b2Body = recordLeak(world.CreateBody(bodyDef))
     circleShape.set_m_radius(radius)
-    circleShape.ComputeMass(massData, density)
+    // circleShape.ComputeMass(massData, density)
     const [x, y] = position
     temp.Set(x, y)
     body.SetTransform(temp, 0)
@@ -191,27 +196,38 @@ export const makeGravityDemo = (
     fixture.SetFriction(0.1)
     return {
       position,
+      radius,
       force: vec2.create(),
-      mass: massData.mass
+      mass3D: radiusToVolume(radius) * earthDensity
+      // mass: massData.mass
     }
   })
   destroy(temp)
-  destroy(massData)
+  // destroy(massData)
   destroy(bodyDef)
   destroy(circleShape)
+
+  const earthRadiusMetres = 6371009
+  const distScale = 6371009 / circleGravitySources[0].radius
 
   const particlePos = vec2.create()
   const posDelta = vec2.create()
   const totalForce = vec2.create()
   const b2Force = new b2Vec2(0, 0)
-  const particleMassNominal = 1
+  // const particleMassNominal = 1
+  // kg/m^3
+  const particleDensity3D = 997.048
+  const particleMass3D = radiusToVolume(particleRadiusNominal * distScale) * particleDensity3D
+  const gravitationalConstant = 6.674e-11
 
   const applyGravity = (): void => {
     const positionBuffer: Box2D.b2Vec2 = recordLeak(particleSystem.GetPositionBuffer())
     const { add, set, sub, sqrLen, len, normalize, scale } = vec2
     for (let i = 0; i < particleSystem.GetParticleCount(); i++) {
-      const particleMassCoeff = randomRadiusArray.get(i)
-      const particleMass = particleMassNominal * particleMassCoeff
+      // const particleRadiusCoeff = randomRadiusArray.get(i)
+      // const particleRadius = particleRadiusNominal * particleRadiusCoeff
+      // const particleVolume = radiusToVolume(particleRadius)
+      // const particleMass3D = particleDensity3D * particleVolume
       const position_p = getPointer(positionBuffer) + i * 8
       set(
         particlePos,
@@ -219,12 +235,17 @@ export const makeGravityDemo = (
         HEAPF32[position_p + 4 >> 2]
       )
       set(totalForce, 0, 0)
-      circleGravitySources.reduce((totalForce: vec2, { position, mass, force }: CircleGravitySource): vec2 => {
+      circleGravitySources.reduce((totalForce: vec2, { position, mass3D, force }: CircleGravitySource): vec2 => {
         set(force, 0, 0)
         sub(posDelta, position, particlePos)
-        const distSquared = sqrLen(posDelta)
-        const massCoeff = particleMass * mass
-        const forceMagnitude = 1 / distSquared * massCoeff
+        // const distSquared = sqrLen(posDelta)
+        // TODO: optimize where the scaling happens so we can use sqrLen again
+        const distNominal = len(posDelta)
+        const dist = distNominal * distScale
+        // console.log(dist)
+        const distSquared = dist ** 2
+        const massProduct = particleMass3D * mass3D
+        const forceMagnitude = (gravitationalConstant * massProduct) / distSquared
         normalize(force, posDelta)
         scale(force, force, forceMagnitude)
         add(totalForce, totalForce, force)
@@ -269,7 +290,7 @@ export const makeGravityDemo = (
   // or take Earth's atmosphere height (150000m)
   // and scale to our desired atmosphere height (0.5m)
   // so scale distances as such.
-  const distanceScale = 150000/0.5
+  const distanceScale = 150000 / 0.5
 
   const particleVel = vec2.create()
   // based on Jon Renner's 'Air Resistance in Box2D'
@@ -295,13 +316,14 @@ export const makeGravityDemo = (
         HEAPF32[velocity_p + 4 >> 2]
       )
       set(totalForce, 0, 0)
-      circleGravitySources.reduce((totalForce: vec2, { position, force }: CircleGravitySource): vec2 => {
+      circleGravitySources.reduce((totalForce: vec2, { position, force, radius }: CircleGravitySource): vec2 => {
         set(force, 0, 0)
         sub(posDelta, position, particlePos)
-        const dist = len(posDelta)
-        const atmosphericDensity = getAtmosphericDensity(dist * distanceScale)
+        const altitude = len(posDelta) - radius
+        const atmosphericDensity = getAtmosphericDensity(altitude * distScale)
 
         const p = atmosphericDensity
+        // const p = 1
         const v = sqrLen(particleVel) // speed squared
         const dragForce = 0.5 * p * v * Cd * A
 
