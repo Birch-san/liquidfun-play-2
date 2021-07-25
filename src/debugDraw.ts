@@ -31,25 +31,29 @@ const DrawSolidCircle: Box2D.JSDraw['DrawSolidCircle'] =
     HEAPF32[center_p + 4 >> 2]
   )
   drawBuffer.circles.radii.emplace(radius)
-  drawBuffer.circles.colours.emplace(
-    HEAPF32[color_p >> 2],
-    HEAPF32[color_p + 4 >> 2],
-    HEAPF32[color_p + 8 >> 2],
-    HEAPF32[color_p + 12 >> 2]
-  )
+  // this works, but prefer to have a standard colour rather than use debug draw's colours
+  // drawBuffer.circles.colours.emplace(
+  //   HEAPF32[color_p >> 2],
+  //   HEAPF32[color_p + 4 >> 2],
+  //   HEAPF32[color_p + 8 >> 2],
+  //   HEAPF32[color_p + 12 >> 2]
+  // )
+  // paint everything our favourite colour instead
+  drawBuffer.circles.colours.push(drawBuffer.circles.colour)
 }
 
 export interface CircleBuffers {
   centres: GrowableVec2Array
   colours: GrowableColourArray
   radii: GrowableRadiusArray
+  colour: Float32Array
 }
 
 export interface ParticleBuffers {
   centres: GrowableVec2Array
   radii: GrowableRandomRadiusArray
   systemRadius: number
-  color: Float32Array
+  colour: Float32Array
 }
 
 export interface DrawBuffer {
@@ -63,13 +67,14 @@ export const drawBuffer: DrawBuffer = {
   circles: {
     centres: circleCentreArray,
     radii: circleRadiusArray,
-    colours: growableColourArray
+    colours: growableColourArray,
+    colour: new Float32Array([0.75, 0.75, 0.75, 1])
   },
   particles: {
     centres: particleCentreArray,
     radii: randomRadiusArray,
     systemRadius: 1,
-    color: new Float32Array([0xff, 0xff, 0xff, 0xff])
+    colour: new Float32Array([1, 1, 1, 1])
   },
   lineVertices: growableVec2Array
 }

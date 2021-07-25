@@ -15,15 +15,21 @@ void main(void) {
       v_diameter - u_edge_size,
       distance * (v_diameter + u_edge_size)
   );
-  gl_FragColor = (
-    u_edge_colour * sEdge
-  ) +
-    (
-      (1.0 - sEdge) * v_colour
-    );
+  gl_FragColor = u_edge_colour * distance;
+  // float sEdge = smoothstep(
+  //     v_diameter - u_edge_size - 2.0,
+  //     v_diameter - u_edge_size,
+  //     distance * (v_diameter + u_edge_size)
+  // );
+  // gl_FragColor = (
+  //   u_edge_colour * sEdge
+  // ) +
+  //   (
+  //     (1.0 - sEdge) * v_colour
+  //   );
   // gl_FragColor.a = gl_FragColor.a * (1.0 - smoothstep(
-  //   diameter - 2.0,
-  //   diameter,
-  //   distance * diameter
+  //   v_diameter - 2.0,
+  //   v_diameter,
+  //   distance * v_diameter
   // ));
 }

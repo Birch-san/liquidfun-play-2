@@ -136,6 +136,10 @@ export class GrowableColourArray extends GrowableTypedArray<Float32Array> {
     this.ensureFits(this.length + 1)
     this.emplaceWithoutRealloc(r, g, b, a)
   }
+
+  push ([r, g, b, a]: Iterable<number>): void {
+    this.emplace(r, g, b, a)
+  }
 }
 export const growableColourArray = new GrowableColourArray()
 

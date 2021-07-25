@@ -708,7 +708,7 @@ export const onContext = ({
     gl.uniform1f(locations.circle.uniform.u_diameter, 2 * particles.systemRadius * metresToClipSpace)
     gl.uniform1f(locations.circle.uniform.u_edge_size, circleEdgeThicknessPx * canvasToClipSpaceRatio)
     gl.uniform4fv(locations.circle.uniform.u_edge_color, circleEdgeColor)
-    gl.uniform4fv(locations.circle.uniform.u_color, particles.color)
+    gl.uniform4fv(locations.circle.uniform.u_color, particles.colour)
     gl.uniformMatrix3fv(locations.circle.uniform.u_matrix, false, mat)
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
     gl.vertexAttribPointer(locations.circle.attrib.a_position, 2, gl.FLOAT, false, 0, 0)

@@ -78,7 +78,7 @@ export const makeGravityDemo = (
 
   const particleRadiusNominal = 0.025
   const psd = new b2ParticleSystemDef()
-  // psd.maxCount = 500
+  // psd.maxCount = 1
   psd.radius = particleRadiusNominal
   psd.dampingStrength = 0.2
 
@@ -183,6 +183,7 @@ export const makeGravityDemo = (
     position: vec2
     radius: number
     atmosphereHeight: number
+    densityCoeff?: number
     mobile?: boolean
   }
   interface CircleGravitySource {
@@ -207,6 +208,7 @@ export const makeGravityDemo = (
     radius: 0.2,
     position: vec2.fromValues(-1, -1),
     atmosphereHeight: 0.2,
+    densityCoeff: 7,
     mobile: true
   }]
   // mean density in kg/m^3
@@ -217,20 +219,20 @@ export const makeGravityDemo = (
   mobileBodyDef.set_type(b2_dynamicBody)
   const circleShape = new b2CircleShape()
   const circleGravitySources: CircleGravitySource[] =
-  circleGravitySourceSpecs.map(({ position, radius, atmosphereHeight, mobile = false }: CircleGravitySourceSpec): CircleGravitySource => {
+  circleGravitySourceSpecs.map(({ position, radius, atmosphereHeight, densityCoeff = 1, mobile = false }: CircleGravitySourceSpec): CircleGravitySource => {
     const body: Box2D.b2Body = recordLeak(world.CreateBody(mobile ? mobileBodyDef : bodyDef))
     circleShape.set_m_radius(radius)
     // circleShape.ComputeMass(massData, density)
     const [x, y] = position
     temp.Set(x, y)
     body.SetTransform(temp, 0)
-    const fixture: Box2D.b2Fixture = recordLeak(body.CreateFixture(circleShape, 1))
+    const fixture: Box2D.b2Fixture = recordLeak(body.CreateFixture(circleShape, densityCoeff))
     fixture.SetFriction(0.1)
     return {
       position,
       radius,
       force: vec2.create(),
-      mass3D: radiusToVolume(radius) * earthDensity,
+      mass3D: radiusToVolume(radius) * earthDensity * densityCoeff,
       // mass: massData.mass
       atmosphereHeightCoeff: atmosphereHeight * distScale / earthAtmosphereHeight,
       body,
@@ -261,8 +263,7 @@ export const makeGravityDemo = (
   mJD.set_collideConnected(true)
   const stiffnessDamping_p: number = _malloc(2 * Float32Array.BYTES_PER_ELEMENT)
   b2LinearStiffness(stiffnessDamping_p, stiffnessDamping_p + Float32Array.BYTES_PER_ELEMENT, frequencyHz, dampingRatio, mouseBody, mobilePlanet.body)
-  const stiffness = HEAPF32[stiffnessDamping_p >> 2]
-  const damping = HEAPF32[stiffnessDamping_p + 4 >> 2]
+  const [stiffness, damping] = HEAPF32.subarray(stiffnessDamping_p >> 2)
   _free(stiffnessDamping_p)
   mJD.set_stiffness(stiffness)
   mJD.set_damping(damping)
@@ -406,8 +407,7 @@ export const makeGravityDemo = (
         world.QueryAABB(queryCallback, aabb)
       }
       const { set } = vec2
-      const { p }: Box2D.b2Transform = recordLeak(mouseBody.GetTransform())
-      const { x, y }: Box2D.b2Vec2 = recordLeak(p)
+      const { x, y }: Box2D.b2Vec2 = recordLeak(mobilePlanet.body.GetPosition())
       set(mobilePlanet.position, x, y)
       applyGravity()
 
