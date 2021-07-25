@@ -10,6 +10,14 @@ nav a, nav a:visited, nav a:hover, nav a:active {
   margin-right: auto;
   width: 800px;
 }
+#svelte-mount {
+  width: 100%
+}
 canvas {
+  max-width: 100%;
   border: 1px solid black;
+}
+fieldset {
+  max-width: 800px;
+  box-sizing: border-box;
 }
