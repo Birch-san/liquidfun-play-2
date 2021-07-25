@@ -16,6 +16,8 @@ nav a, nav a:visited, nav a:hover, nav a:active {
 canvas {
   max-width: 100%;
   border: 1px solid black;
+  touch-action: none;
+  overflow: auto;
 }
 fieldset {
   max-width: 800px;

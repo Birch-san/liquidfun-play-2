@@ -153,11 +153,11 @@
   </pre>
   <canvas
   bind:this={canvasElement}
-  on:mousedown={handleMouseDown}
-  on:mouseup={handleMouseUp}
-  on:mouseleave={handleMouseUp}
-  on:mouseenter={handleMouseEnter}
-  on:mousemove={handleMouseMove}
+  on:pointerdown={handleMouseDown}
+  on:pointerup={handleMouseUp}
+  on:pointerleave={handleMouseUp}
+  on:pointerenter={handleMouseEnter}
+  on:pointermove={handleMouseMove}
   width={width}
   height={height}
   ></canvas>
