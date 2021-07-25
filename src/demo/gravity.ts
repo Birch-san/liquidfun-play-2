@@ -2,6 +2,7 @@ import type { ClickPos, DemoResources } from './index'
 // import { randomRadiusArray } from '../growableTypedArray'
 import { vec2, mat3 } from 'gl-matrix'
 import { LeakMitigator } from '../box2d'
+import { assert } from '../assert'
 
 const { box2D } = await import('../box2d')
 
@@ -15,6 +16,9 @@ export const makeGravityDemo = (
     b2CircleShape,
     b2Vec2,
     b2MassData,
+    b2LinearStiffness,
+    b2MouseJoint,
+    b2MouseJointDef,
     b2ParticleGroupDef,
     b2ParticleSystem,
     b2ParticleSystemDef,
@@ -26,6 +30,8 @@ export const makeGravityDemo = (
     castObject,
     destroy,
     getPointer,
+    _malloc,
+    _free,
     HEAPF32,
     NULL
   } = box2D
@@ -159,6 +165,11 @@ export const makeGravityDemo = (
       aabb.set_lowerBound(lowerBound)
       aabb.set_upperBound(upperBound)
     }
+    mouseJoint.SetTarget(mousePos)
+    // {
+    //   const { x, y } = mouseJoint.GetTarget()
+    //   console.log(x, y)
+    // }
   }
 
   const radiusToVolume = (radius: number): number =>
@@ -172,6 +183,7 @@ export const makeGravityDemo = (
     position: vec2
     radius: number
     atmosphereHeight: number
+    mobile?: boolean
   }
   interface CircleGravitySource {
     position: vec2
@@ -179,6 +191,9 @@ export const makeGravityDemo = (
     force: vec2
     mass3D: number
     atmosphereHeightCoeff: number
+    body: Box2D.b2Body
+    fixture: Box2D.b2Fixture
+    mobile: boolean
   }
   const circleGravitySourceSpecs: CircleGravitySourceSpec[] = [{
     position: vec2.fromValues(1, 1.5),
@@ -188,21 +203,28 @@ export const makeGravityDemo = (
     position: vec2.fromValues(-1, 0),
     radius: 0.7,
     atmosphereHeight: 0.5
+  }, {
+    radius: 0.2,
+    position: vec2.fromValues(-1, -1),
+    atmosphereHeight: 0.2,
+    mobile: true
   }]
   // mean density in kg/m^3
   const earthDensity = 5515
   // const massData = new b2MassData()
   const bodyDef = new b2BodyDef()
+  const mobileBodyDef = new b2BodyDef()
+  mobileBodyDef.set_type(b2_dynamicBody)
   const circleShape = new b2CircleShape()
   const circleGravitySources: CircleGravitySource[] =
-  circleGravitySourceSpecs.map(({ position, radius, atmosphereHeight }: CircleGravitySourceSpec): CircleGravitySource => {
-    const body: Box2D.b2Body = recordLeak(world.CreateBody(bodyDef))
+  circleGravitySourceSpecs.map(({ position, radius, atmosphereHeight, mobile = false }: CircleGravitySourceSpec): CircleGravitySource => {
+    const body: Box2D.b2Body = recordLeak(world.CreateBody(mobile ? mobileBodyDef : bodyDef))
     circleShape.set_m_radius(radius)
     // circleShape.ComputeMass(massData, density)
     const [x, y] = position
     temp.Set(x, y)
     body.SetTransform(temp, 0)
-    const fixture: Box2D.b2Fixture = recordLeak(body.CreateFixture(circleShape, 0))
+    const fixture: Box2D.b2Fixture = recordLeak(body.CreateFixture(circleShape, 1))
     fixture.SetFriction(0.1)
     return {
       position,
@@ -210,17 +232,45 @@ export const makeGravityDemo = (
       force: vec2.create(),
       mass3D: radiusToVolume(radius) * earthDensity,
       // mass: massData.mass
-      atmosphereHeightCoeff: atmosphereHeight * distScale / earthAtmosphereHeight
+      atmosphereHeightCoeff: atmosphereHeight * distScale / earthAtmosphereHeight,
+      body,
+      fixture,
+      mobile
     }
   })
-  // const planetRadii = new Float32Array(circleGravitySources.map(({ radius }: CircleGravitySource): number => radius))
-  // .flatMap() would be more fun way, but would need polyfill for semi-recent Safari (11)
-  // eslint-disable-next-line no-sequences
-  // const planetPositions = new Float32Array(circleGravitySources.reduce<number[]>((acc, { position: [x, y] }: CircleGravitySource) => (acc.push(x, y), acc), []))
-  destroy(temp)
   // destroy(massData)
   destroy(bodyDef)
+  destroy(mobileBodyDef)
   destroy(circleShape)
+
+  const frequencyHz = 5
+  const dampingRatio = 0.7
+  const mobilePlanet: CircleGravitySource | undefined =
+    circleGravitySources.find(({ mobile }: CircleGravitySource) => mobile)
+  assert(mobilePlanet)
+  const mouseJointBD = new b2BodyDef()
+  const mouseBody: Box2D.b2Body = recordLeak(world.CreateBody(mouseJointBD))
+  destroy(mouseJointBD)
+  const mJD = new b2MouseJointDef()
+  mJD.set_bodyA(mouseBody)
+  mJD.set_bodyB(mobilePlanet.body)
+  const [x, y] = mobilePlanet.position
+  temp.Set(x, y)
+  mJD.set_target(temp)
+  mJD.set_maxForce(1000 * mobilePlanet.body.GetMass())
+  mJD.set_collideConnected(true)
+  const stiffnessDamping_p: number = _malloc(2 * Float32Array.BYTES_PER_ELEMENT)
+  b2LinearStiffness(stiffnessDamping_p, stiffnessDamping_p + Float32Array.BYTES_PER_ELEMENT, frequencyHz, dampingRatio, mouseBody, mobilePlanet.body)
+  const stiffness = HEAPF32[stiffnessDamping_p >> 2]
+  const damping = HEAPF32[stiffnessDamping_p + 4 >> 2]
+  _free(stiffnessDamping_p)
+  mJD.set_stiffness(stiffness)
+  mJD.set_damping(damping)
+  const mouseJoint: Box2D.b2MouseJoint = recordLeak(castObject(recordLeak(world.CreateJoint(mJD)), b2MouseJoint))
+  destroy(mJD)
+  // mobilePlanet.body.SetAwake(true)
+
+  destroy(temp)
 
   const particlePos = vec2.create()
   const posDelta = vec2.create()
@@ -355,12 +405,15 @@ export const makeGravityDemo = (
       if (mouseIsDown) {
         world.QueryAABB(queryCallback, aabb)
       }
+      const { set } = vec2
+      const { p }: Box2D.b2Transform = recordLeak(mouseBody.GetTransform())
+      const { x, y }: Box2D.b2Vec2 = recordLeak(p)
+      set(mobilePlanet.position, x, y)
       applyGravity()
 
       // applyDrag()
 
-      // note: no position/velocity iterations at all
-      world.Step(intervalSecs, 0, 0, particleIterations)
+      world.Step(intervalSecs, 1, 1, particleIterations)
     },
     getPixelsPerMeter: () => pixelsPerMeter,
     matrixMutator: (mat: mat3, canvasWidth: number, canvasHeight: number): void => {
@@ -405,8 +458,8 @@ export const makeGravityDemo = (
       },
       onMouseMove: (clickPos: ClickPos): void => {
         updateMousePos(clickPos)
-        const { x, y } = mousePos
-        console.log(x, y)
+        // const { x, y } = mousePos
+        // console.log(x, y)
       }
     }
   }
