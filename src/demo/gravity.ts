@@ -1,5 +1,4 @@
 import type { ClickPos, DemoResources } from './index'
-// import { randomRadiusArray } from '../growableTypedArray'
 import { vec2, mat3 } from 'gl-matrix'
 import { LeakMitigator } from '../box2d'
 import { assert } from '../assert'
@@ -11,22 +10,16 @@ export const makeGravityDemo = (
 ): DemoResources => {
   const {
     b2_dynamicBody,
-    b2AABB,
     b2BodyDef,
     b2CircleShape,
     b2Vec2,
-    b2MassData,
     b2LinearStiffness,
     b2MouseJoint,
     b2MouseJointDef,
     b2ParticleGroupDef,
-    b2ParticleSystem,
     b2ParticleSystemDef,
     b2PolygonShape,
-    b2RevoluteJoint,
-    b2RevoluteJointDef,
     b2World,
-    JSQueryCallback,
     castObject,
     destroy,
     getPointer,
@@ -36,45 +29,12 @@ export const makeGravityDemo = (
     NULL
   } = box2D
 
-  const { freeLeaked, recordLeak, safeWrapPointer } = new LeakMitigator()
+  const { freeLeaked, recordLeak } = new LeakMitigator()
   const gravity = new b2Vec2(0, 0)
   const world = new b2World(gravity)
   destroy(gravity)
 
   world.SetDebugDraw(debugDraw)
-
-  // const bd = new b2BodyDef()
-  // const ground: Box2D.b2Body = recordLeak(world.CreateBody(bd))
-
-  // bd.type = b2_dynamicBody
-  // bd.allowSleep = false
-  // bd.position.Set(0, 1)
-  // const body: Box2D.b2Body = recordLeak(world.CreateBody(bd))
-  // destroy(bd)
-
-  const temp = new b2Vec2(0, 0)
-  const shape = new b2PolygonShape()
-
-  // for (const [hx, hy, x, y] of [
-  //   [0.05, 1, 2, 0],
-  //   [0.05, 1, -2, 0],
-  //   [2, 0.05, 0, 1],
-  //   [2, 0.05, 0, -1]
-  // ]) {
-  //   temp.Set(x, y)
-  //   shape.SetAsBox(hx, hy, temp, 0)
-  //   recordLeak(body.CreateFixture(shape, 5))
-  // }
-
-  // const jd = new b2RevoluteJointDef()
-  // jd.motorSpeed = 0.05 * Math.PI
-  // jd.maxMotorTorque = 1e7
-  // jd.enableMotor = true
-  // temp.Set(0, 1)
-  // jd.Initialize(ground, body, temp)
-  // const jointAbstract: Box2D.b2Joint = recordLeak(world.CreateJoint(jd))
-  // const joint: Box2D.b2RevoluteJoint = recordLeak(castObject(jointAbstract, b2RevoluteJoint))
-  // destroy(jd)
 
   const particleRadiusNominal = 0.025
   const psd = new b2ParticleSystemDef()
@@ -85,6 +45,8 @@ export const makeGravityDemo = (
   const particleSystem: Box2D.b2ParticleSystem = recordLeak(world.CreateParticleSystem(psd))
   destroy(psd)
 
+  const temp = new b2Vec2(0, 0)
+  const shape = new b2PolygonShape()
   temp.Set(0, 1)
   shape.SetAsBox(0.9, 0.9, temp, 0)
   const particleGroupDef = new b2ParticleGroupDef()
@@ -92,8 +54,6 @@ export const makeGravityDemo = (
   recordLeak(particleSystem.CreateParticleGroup(particleGroupDef))
   destroy(particleGroupDef)
   destroy(shape)
-
-  let timeElapsedSecs = 0
 
   const pixelsPerMeter = 160
 
@@ -117,34 +77,7 @@ export const makeGravityDemo = (
     mat: mat3.create()
   } as const
 
-  const impulse = new b2Vec2(0.25, 0)
-
-  let mouseIsDown = false
   const mousePos = new b2Vec2(0, 0)
-  const lowerBound = new b2Vec2(0, 0)
-  const upperBound = new b2Vec2(0, 0)
-  const aabb = new b2AABB()
-  const queryCallback: Box2D.JSQueryCallback = Object.assign<
-  Box2D.JSQueryCallback,
-  Partial<Box2D.JSQueryCallback>
-  >(new JSQueryCallback(), {
-    ReportParticle (particleSystem_p: number, index: number): boolean {
-      const particleSystem: Box2D.b2ParticleSystem = safeWrapPointer(particleSystem_p, b2ParticleSystem)
-      const positionBuffer: Box2D.b2Vec2 = recordLeak(particleSystem.GetPositionBuffer())
-      const position_p = getPointer(positionBuffer) + index * 8
-      const pos_x = HEAPF32[position_p >> 2]
-      const pos_y = HEAPF32[position_p + 4 >> 2]
-      impulse.Set(pos_x - mousePos.x, pos_y - mousePos.y)
-      const lengthSquared = impulse.LengthSquared()
-      const magnitude = Math.min(1 / lengthSquared, 0.25)
-      impulse.Normalize()
-      impulse.Set(impulse.x * magnitude, impulse.y * magnitude)
-      particleSystem.ParticleApplyLinearImpulse(index, impulse)
-      return true
-    },
-    ReportFixture: (_fixture_p: number) => false,
-    ShouldQueryParticleSystem: (_particleSystem_p: number) => true
-  })
 
   const updateMousePos = ({ x, y }: ClickPos): void => {
     const { negPos } = cameraMetres
@@ -159,17 +92,8 @@ export const makeGravityDemo = (
     {
       const [x, y] = coord
       mousePos.Set(x, y)
-      const d = 0.02
-      lowerBound.Set(x - d, y - d)
-      upperBound.Set(x + d, y + d)
-      aabb.set_lowerBound(lowerBound)
-      aabb.set_upperBound(upperBound)
     }
     mouseJoint.SetTarget(mousePos)
-    // {
-    //   const { x, y } = mouseJoint.GetTarget()
-    //   console.log(x, y)
-    // }
   }
 
   const radiusToVolume = (radius: number): number =>
@@ -213,7 +137,6 @@ export const makeGravityDemo = (
   }]
   // mean density in kg/m^3
   const earthDensity = 5515
-  // const massData = new b2MassData()
   const bodyDef = new b2BodyDef()
   const mobileBodyDef = new b2BodyDef()
   mobileBodyDef.set_type(b2_dynamicBody)
@@ -222,7 +145,6 @@ export const makeGravityDemo = (
   circleGravitySourceSpecs.map(({ position, radius, atmosphereHeight, densityCoeff = 1, mobile = false }: CircleGravitySourceSpec): CircleGravitySource => {
     const body: Box2D.b2Body = recordLeak(world.CreateBody(mobile ? mobileBodyDef : bodyDef))
     circleShape.set_m_radius(radius)
-    // circleShape.ComputeMass(massData, density)
     const [x, y] = position
     temp.Set(x, y)
     body.SetTransform(temp, 0)
@@ -233,14 +155,12 @@ export const makeGravityDemo = (
       radius,
       force: vec2.create(),
       mass3D: radiusToVolume(radius) * earthDensity * densityCoeff,
-      // mass: massData.mass
       atmosphereHeightCoeff: atmosphereHeight * distScale / earthAtmosphereHeight,
       body,
       fixture,
       mobile
     }
   })
-  // destroy(massData)
   destroy(bodyDef)
   destroy(mobileBodyDef)
   destroy(circleShape)
@@ -401,16 +321,15 @@ export const makeGravityDemo = (
       // 3 particle iterations seems to be enough to simulate a 60th of a second
       const particleIterations: number = Math.ceil(intervalMs / 3)
       const intervalSecs = intervalMs / 1000
-      // timeElapsedSecs += intervalSecs
-      // joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedSecs) * Math.PI)
-      if (mouseIsDown) {
-        world.QueryAABB(queryCallback, aabb)
-      }
+
       const { set } = vec2
       const { x, y }: Box2D.b2Vec2 = recordLeak(mobilePlanet.body.GetPosition())
       set(mobilePlanet.position, x, y)
+
       applyGravity()
 
+      // works, but disabled since the effect is barely noticeable and not free.
+      // you need an unrealistically tall atmosphere in order for particles to fit beneath.
       // applyDrag()
 
       world.Step(intervalSecs, 1, 1, particleIterations)
@@ -440,26 +359,12 @@ export const makeGravityDemo = (
       world.DestroyParticleSystem(particleSystem)
       destroy(world)
       destroy(mousePos)
-      destroy(queryCallback)
-      destroy(lowerBound)
-      destroy(upperBound)
-      destroy(aabb)
-      destroy(impulse)
       destroy(b2Force)
       freeLeaked()
     },
     eventHandlers: {
-      onMouseDown: (clickPos: ClickPos): void => {
-        mouseIsDown = true
-        updateMousePos(clickPos)
-      },
-      onMouseUp: (): void => {
-        mouseIsDown = false
-      },
       onMouseMove: (clickPos: ClickPos): void => {
         updateMousePos(clickPos)
-        // const { x, y } = mousePos
-        // console.log(x, y)
       }
     }
   }
