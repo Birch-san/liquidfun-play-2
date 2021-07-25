@@ -140,6 +140,10 @@ export class GrowableColourArray extends GrowableTypedArray<Float32Array> {
   push ([r, g, b, a]: Iterable<number>): void {
     this.emplace(r, g, b, a)
   }
+
+  getBuffer (): Float32List {
+    return this.buffer
+  }
 }
 export const growableColourArray = new GrowableColourArray()
 
@@ -159,6 +163,10 @@ export class GrowableVec2Array extends GrowableTypedArray<Float32Array> {
     this.ensureFits(this.length + 1)
     this.emplaceWithoutRealloc(x, y)
   }
+
+  getBuffer (): Float32List {
+    return this.buffer
+  }
 }
 
 export class GrowableRadiusArray extends GrowableTypedArray<Float32Array> {
@@ -171,6 +179,10 @@ export class GrowableRadiusArray extends GrowableTypedArray<Float32Array> {
     this.ensureFits(newLength)
     this.buffer[this.length * this.elemSize] = radius
     this.length = newLength
+  }
+
+  get (ix: number): number {
+    return this.buffer[ix]
   }
 }
 
@@ -202,8 +214,33 @@ export class GrowableRandomRadiusArray extends GrowableTypedArray<Float32Array> 
   }
 }
 
+export class GrowableTriangleFanArray extends GrowableTypedArray<Float32Array> {
+  constructor (public readonly vertices: number) {
+    // add one because we have to repeat the first vertex twice (used as a start and end)
+    // add another because we have to include the centre
+    super(Float32Array, 2 * (2 + vertices))
+  }
+
+  emplace (x: number, y: number, radius: number): void {
+    const newLength = this.length + 1
+    this.ensureFits(newLength)
+    this.buffer[this.length * this.elemSize] = x
+    this.buffer[this.length * this.elemSize + 1] = y
+    const angleDelta = 2 * Math.PI / this.vertices
+    for (let i = 0; i < this.vertices; i++) {
+      const angle = angleDelta * i
+      this.buffer[this.length * this.elemSize + 2 + 2 * i] = x + Math.cos(angle) * radius
+      this.buffer[this.length * this.elemSize + 2 + 2 * i + 1] = y + Math.sin(angle) * radius
+    }
+    this.buffer[this.length * this.elemSize + 2 + 2 * this.vertices] = this.buffer[this.length * this.elemSize + 2]
+    this.buffer[this.length * this.elemSize + 2 + 2 * this.vertices + 1] = this.buffer[this.length * this.elemSize + 3]
+    this.length = newLength
+  }
+}
+
 export const growableVec2Array = new GrowableVec2Array()
 export const circleCentreArray = new GrowableVec2Array()
+export const circleTriangleFanArray = new GrowableTriangleFanArray(8)
 export const circleRadiusArray = new GrowableRadiusArray()
 export const particleCentreArray = new GrowableVec2Array()
 export const randomRadiusArray = new GrowableRandomRadiusArray()

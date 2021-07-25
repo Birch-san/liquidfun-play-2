@@ -1,5 +1,5 @@
-import type { GrowableColourArray, GrowableQuadArray, GrowableRadiusArray, GrowableRandomRadiusArray, GrowableVec2Array } from './growableTypedArray'
-import { circleCentreArray, circleRadiusArray, particleCentreArray, growableColourArray, growableQuadArray, growableVec2Array, randomRadiusArray } from './growableTypedArray'
+import type { GrowableColourArray, GrowableQuadArray, GrowableRadiusArray, GrowableRandomRadiusArray, GrowableTriangleFanArray, GrowableVec2Array } from './growableTypedArray'
+import { circleCentreArray, circleTriangleFanArray, circleRadiusArray, particleCentreArray, growableColourArray, growableQuadArray, growableVec2Array, randomRadiusArray } from './growableTypedArray'
 
 const { box2D } = await import('./box2d')
 const {
@@ -24,11 +24,18 @@ const DrawSolidCircle: Box2D.JSDraw['DrawSolidCircle'] =
 (center_p: number, radius: number, axis_p: number, color_p: number): void => {
   // const color: Box2D.b2Color = wrapPointer(color_p, b2Color)
   // const center: Box2D.b2Vec2 = wrapPointer(center_p, b2Vec2)
+
   // intentionally not implementing rendering of axis
   // const axis: Box2D.b2Vec2 = wrapPointer(axis_p, b2Vec2)
+
   drawBuffer.circles.centres.emplace(
     HEAPF32[center_p >> 2],
     HEAPF32[center_p + 4 >> 2]
+  )
+  drawBuffer.circles.triangleFans.emplace(
+    HEAPF32[center_p >> 2],
+    HEAPF32[center_p + 4 >> 2],
+    radius
   )
   drawBuffer.circles.radii.emplace(radius)
   // this works, but prefer to have a standard colour rather than use debug draw's colours
@@ -44,6 +51,7 @@ const DrawSolidCircle: Box2D.JSDraw['DrawSolidCircle'] =
 
 export interface CircleBuffers {
   centres: GrowableVec2Array
+  triangleFans: GrowableTriangleFanArray
   colours: GrowableColourArray
   radii: GrowableRadiusArray
   colour: Float32Array
@@ -66,6 +74,7 @@ export const drawBuffer: DrawBuffer = {
   boxes: growableQuadArray,
   circles: {
     centres: circleCentreArray,
+    triangleFans: circleTriangleFanArray,
     radii: circleRadiusArray,
     colours: growableColourArray,
     colour: new Float32Array([0.75, 0.75, 0.75, 1])
@@ -82,6 +91,7 @@ export const flushDrawBuffer = (): void => {
   const { boxes, circles, particles, lineVertices } = drawBuffer
   boxes.length = 0
   circles.centres.length = 0
+  circles.triangleFans.length = 0
   circles.radii.length = 0
   circles.colours.length = 0
   particles.centres.length = 0
