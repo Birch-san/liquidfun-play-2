@@ -268,11 +268,11 @@ export const onContext = ({
     },
     circle: {
       attrib: ['a_position'] as const,
-      uniform: ['u_matrix', 'u_color', 'u_diameter', 'u_edge_size', 'u_edge_color'] as const
+      uniform: ['u_matrix', 'u_color', 'u_diameter', 'u_edge_size', 'u_edge_size_px', 'u_edge_color'] as const
     },
     planet: {
       attrib: ['a_position', 'a_radius', 'a_colour'] as const,
-      uniform: ['u_matrix', 'u_pixels_per_metre', 'u_edge_size', 'u_edge_colour'] as const
+      uniform: ['u_matrix', 'u_pixels_per_metre', 'u_edge_size', 'u_edge_size_px', 'u_highlight_colour', 'u_edge_colour'] as const
     }
   })
 
@@ -706,8 +706,9 @@ export const onContext = ({
   ): void => {
     gl.useProgram(programs.circle)
     gl.uniform1f(locations.circle.uniform.u_diameter, 2 * particles.systemRadius * metresToClipSpace)
-    gl.uniform1f(locations.circle.uniform.u_edge_size, circleEdgeThicknessPx * canvasToClipSpaceRatio)
-    gl.uniform4fv(locations.circle.uniform.u_edge_color, circleEdgeColor)
+    gl.uniform1f(locations.circle.uniform.u_edge_size, particleEdgeThicknessPx * canvasToClipSpaceRatio)
+    gl.uniform1f(locations.circle.uniform.u_edge_size_px, particleEdgeThicknessPx)
+    gl.uniform4fv(locations.circle.uniform.u_edge_color, particleEdgeColour)
     gl.uniform4fv(locations.circle.uniform.u_color, particles.colour)
     gl.uniformMatrix3fv(locations.circle.uniform.u_matrix, false, mat)
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
@@ -729,7 +730,9 @@ export const onContext = ({
     gl.useProgram(programs.planet)
     gl.uniform1f(locations.planet.uniform.u_pixels_per_metre, pixelsPerMetre)
     gl.uniform1f(locations.planet.uniform.u_edge_size, circleEdgeThicknessPx * canvasToClipSpaceRatio)
-    gl.uniform4fv(locations.planet.uniform.u_edge_colour, circleEdgeColor)
+    gl.uniform1f(locations.planet.uniform.u_edge_size_px, circleEdgeThicknessPx)
+    gl.uniform4fv(locations.planet.uniform.u_edge_colour, circleEdgeColour)
+    gl.uniform4fv(locations.planet.uniform.u_highlight_colour, circleHighlightColour)
     gl.uniformMatrix3fv(locations.planet.uniform.u_matrix, false, mat)
 
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
@@ -765,7 +768,10 @@ export const onContext = ({
   const blobNormalTex = precomputeBlobTexture(Effect.Refraction)
   const blobTemporalTex = precomputeBlobTexture(Effect.TemporalBlend)
 
-  const circleEdgeColor: vec4 = vec4.fromValues(0, 0, 0, 0.2)
+  const particleEdgeColour: vec4 = vec4.fromValues(0, 0, 0, 0.2)
+  const particleEdgeThicknessPx = 0.5
+  const circleEdgeColour: vec4 = vec4.fromValues(0, 0, 0, 1)
+  const circleHighlightColour: vec4 = vec4.fromValues(1, 1, 1, 1)
   const circleEdgeThicknessPx = 1
 
   const temporalBlendColor = new Float32Array([0, 0, 0, 0.85])
