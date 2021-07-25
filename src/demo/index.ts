@@ -1,11 +1,12 @@
 import type { GetPixelsPerMeter, MutateMatrix } from '../onContext'
 import { makeRampDemo } from './ramp'
 import { makeGravityDemo } from './gravity'
-import { makeWaveMachineDemo } from './waveMachine'
+import { makeWaveMachineDemo, WaveMachineGravity } from './waveMachine'
 export {
   makeRampDemo,
   makeGravityDemo,
-  makeWaveMachineDemo
+  makeWaveMachineDemo,
+  WaveMachineGravity
 }
 
 export enum Demo {

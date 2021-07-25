@@ -5,7 +5,7 @@
   import type { Draw, OnContextParams } from './onContext'
   import { Effect, onContext } from './onContext'
   import type { ClickPos } from './demo'
-  import { Demo } from './demo'
+  import { Demo, WaveMachineGravity } from './demo'
   import {
     getDrawBuffer,
     flushDrawBuffer,
@@ -32,10 +32,17 @@
   let canvasElement: HTMLCanvasElement | undefined
 
   let demo: Demo = Demo.Gravity
+
+  let waveMachineGravity: WaveMachineGravity = WaveMachineGravity.Down
   
   const onChangeDemo = (event: Event): void => {
     event.stopPropagation()
-    switchDemo(demo)
+    switchDemo(demo, waveMachineGravity)
+  }
+
+  const onChangeWaveMachineGravity = (event: Event): void => {
+    event.stopPropagation()
+    switchDemo(demo, waveMachineGravity)
   }
 
   let effect = Effect.Refraction
@@ -156,7 +163,7 @@
   ></canvas>
   <fieldset>
     <legend>Demo</legend>
-    <label>
+    <label title="Basic use of Box2D without any liquidfun-specific features">
       <input type=radio bind:group={demo} value={Demo.Ramp} on:change={onChangeDemo}>
       Ramp
     </label>
@@ -168,16 +175,34 @@
       <input type=radio bind:group={demo} value={Demo.WaveMachine} on:change={onChangeDemo}>
       Wave machine
     </label>
-    <label>
+    <!-- <label title="In case your computer gets hot!">
       <input type=radio bind:group={demo} value={Demo.None} on:change={onChangeDemo}>
+      None
+    </label> -->
+  </fieldset>
+  {#if demo === Demo.Gravity}
+  <div><small>A small planet is attached to your mouse, and attracts the water.</small></div>
+  {/if}
+  {#if demo === Demo.WaveMachine}
+  <div><small>Click and drag with your mouse to push the water around.</small></div>
+  <fieldset>
+    <legend>Gravity</legend>
+    <label>
+      <input type=radio bind:group={waveMachineGravity} value={WaveMachineGravity.Down} on:change={onChangeWaveMachineGravity}>
+      Down
+    </label>
+    <label>
+      <input type=radio bind:group={waveMachineGravity} value={WaveMachineGravity.None} on:change={onChangeWaveMachineGravity}>
       None
     </label>
   </fieldset>
+  {/if}
+  {#if [Demo.Gravity, Demo.WaveMachine].includes(demo) }
   <fieldset>
-    <legend>Effect</legend>
+    <legend>Particle Shader</legend>
     <label>
       <input type=radio bind:group={effect} value={Effect.None}>
-      None
+      Simple
     </label>
     <label>
       <input type=radio bind:group={effect} value={Effect.Refraction}>
@@ -188,4 +213,5 @@
       Temporal blend
     </label>
   </fieldset>
+  {/if}
 {/if}

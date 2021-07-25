@@ -3,7 +3,7 @@ import type { MainLoop } from './loop'
 import type { MutateMatrix, GetDrawBuffer, GetPixelsPerMeter } from './onContext'
 import type { DrawBuffer } from './debugDraw'
 import { debugDraw, drawBuffer, flushDrawBuffer } from './debugDraw'
-import type { DestroyDemo, EventHandlers, WorldStep } from './demo'
+import type { DestroyDemo, EventHandlers, WorldStep, WaveMachineGravity } from './demo'
 import {
   Demo,
   makeRampDemo,
@@ -21,7 +21,7 @@ let matrixMutator: MutateMatrix | undefined
 let getPixelsPerMeter: GetPixelsPerMeter | undefined
 export let eventHandlers: EventHandlers | undefined
 
-export const switchDemo = (proposedDemo: Demo): void => {
+export const switchDemo = (proposedDemo: Demo, waveMachineGravity: WaveMachineGravity): void => {
   destroyDemo?.()
   destroyDemo = undefined
   worldStep = undefined
@@ -42,7 +42,7 @@ export const switchDemo = (proposedDemo: Demo): void => {
       break
     }
     case Demo.WaveMachine: {
-      ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter, eventHandlers } = makeWaveMachineDemo(debugDraw))
+      ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter, eventHandlers } = makeWaveMachineDemo(debugDraw, waveMachineGravity))
       break
     }
     default:

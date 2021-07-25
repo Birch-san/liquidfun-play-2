@@ -2,10 +2,16 @@ import type { ClickPos, DemoResources } from './index'
 import { vec2, mat3 } from 'gl-matrix'
 import { LeakMitigator } from '../box2d'
 
+export enum WaveMachineGravity {
+  Down = 'Down',
+  None = 'None'
+}
+
 const { box2D } = await import('../box2d')
 
 export const makeWaveMachineDemo = (
-  debugDraw: Box2D.b2Draw
+  debugDraw: Box2D.b2Draw,
+  waveMachineGravity: WaveMachineGravity
 ): DemoResources => {
   const {
     b2_dynamicBody,
@@ -28,7 +34,17 @@ export const makeWaveMachineDemo = (
   } = box2D
 
   const { freeLeaked, recordLeak, safeWrapPointer } = new LeakMitigator()
-  const gravity = new b2Vec2(0, 10)
+  const gravity = new b2Vec2(0, 0)
+  switch (waveMachineGravity) {
+    case WaveMachineGravity.None:
+      gravity.Set(0, 0)
+      break
+    case WaveMachineGravity.Down:
+      gravity.Set(0, 10)
+      break
+    default:
+      throw new Error(`Unsupported WaveMachineGravity '${waveMachineGravity as string}'`)
+  }
   const world = new b2World(gravity)
   destroy(gravity)
 
