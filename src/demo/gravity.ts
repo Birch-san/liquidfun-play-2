@@ -38,7 +38,7 @@ export const makeGravityDemo = (
 
   const particleRadiusNominal = 0.025
   const psd = new b2ParticleSystemDef()
-  psd.maxCount = 1
+  // psd.maxCount = 1
   psd.radius = particleRadiusNominal
   psd.dampingStrength = 0.2
 

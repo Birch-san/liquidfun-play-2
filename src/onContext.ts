@@ -285,7 +285,7 @@ export const onContext = ({
     },
     polygonplanet: {
       attrib: ['a_position'] as const,
-      uniform: ['u_matrix', 'u_matrix_metres_to_canvas', 'u_centre', 'u_edge_size_px', 'u_highlight_colour', 'u_edge_colour', 'u_colour', 'u_diameter_px'] as const
+      uniform: ['u_matrix', 'u_matrix_metres_to_canvas', 'u_centre', 'u_edge_size_px', 'u_highlight_colour', 'u_edge_colour', 'u_colour', 'u_radius_px', 'u_bleed_size_px'] as const
     }
   })
 
@@ -733,22 +733,17 @@ export const onContext = ({
   }
 
   const drawCircles = (
-    // pixelsPerMetre: number,
-    // canvasToClipSpaceRatio: number,
+    pixelsPerMetre: number,
     circleCount: number,
     verticesPerCircle: number,
     positions: GrowableVec2Array,
-    // positionBuffer: WebGLBuffer,
     triangleFanBuffer: WebGLBuffer,
     radii: GrowableRadiusArray,
-    // radiusBuffer: WebGLBuffer,
     colours: GrowableColourArray
-    // colourBuffer: WebGLBuffer
   ): void => {
     gl.useProgram(programs.polygonplanet)
-    // gl.uniform1f(locations.polygonplanet.uniform.u_pixels_per_metre, pixelsPerMetre)
-    // gl.uniform1f(locations.polygonplanet.uniform.u_edge_size, circleEdgeThicknessPx * canvasToClipSpaceRatio)
     gl.uniform1f(locations.polygonplanet.uniform.u_edge_size_px, circleEdgeThicknessPx)
+    gl.uniform1f(locations.polygonplanet.uniform.u_bleed_size_px, circleBorderBleedPx)
     gl.uniform4fv(locations.polygonplanet.uniform.u_edge_colour, circleEdgeColour)
     gl.uniform4fv(locations.polygonplanet.uniform.u_highlight_colour, circleHighlightColour)
     gl.uniformMatrix3fv(locations.polygonplanet.uniform.u_matrix, false, mat)
@@ -759,27 +754,17 @@ export const onContext = ({
     // WebGL2's drawArraysInstanced would be better than loop, but some devices do not support it.
     // likewise WEBGL_multi_draw extension may work too, but many devices do not support it.
     // we also cannot draw a single array of points via gl_PointSize, as this only supports tiny circles.
-    // console.log(positions.getBuffer())
     for (let i = 0; i < circleCount; i++) {
-      gl.uniform1f(locations.polygonplanet.uniform.u_diameter_px, radii.get(i) * 2)
+      const radiusPx = radii.get(i) * pixelsPerMetre
+      gl.uniform1f(locations.polygonplanet.uniform.u_radius_px, radiusPx)
+      // gl.uniform1f(locations.polygonplanet.uniform.u_diameter_px, radiusPx * 2)
       gl.uniform2fv(locations.polygonplanet.uniform.u_centre, positions.getBuffer(), 2 * i, 2)
       gl.uniform4fv(locations.polygonplanet.uniform.u_colour, colours.getBuffer(), 4 * i, 4)
       gl.vertexAttribPointer(locations.polygonplanet.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
       gl.drawArrays(gl.TRIANGLE_FAN, (verticesPerCircle + 2) * i, verticesPerCircle + 2)
     }
 
-    // gl.bindBuffer(gl.ARRAY_BUFFER, radiusBuffer)
-    // gl.vertexAttribPointer(locations.polygonplanet.attrib.a_radius, 1, gl.FLOAT, false, 0, 0)
-    // gl.enableVertexAttribArray(locations.polygonplanet.attrib.a_radius)
-
-    // gl.bindBuffer(gl.ARRAY_BUFFER, colourBuffer)
-    // gl.vertexAttribPointer(locations.polygonplanet.attrib.a_colour, 4, gl.FLOAT, false, 0, 0)
-    // gl.enableVertexAttribArray(locations.polygonplanet.attrib.a_colour)
-
-    // gl.drawArrays(gl.POINTS, 0, circleCount)
     gl.disableVertexAttribArray(locations.polygonplanet.attrib.a_position)
-    // gl.disableVertexAttribArray(locations.polygonplanet.attrib.a_radius)
-    // gl.disableVertexAttribArray(locations.polygonplanet.attrib.a_colour)
     gl.bindBuffer(gl.ARRAY_BUFFER, null)
   }
 
@@ -799,9 +784,12 @@ export const onContext = ({
 
   const particleEdgeColour: vec4 = vec4.fromValues(0, 0, 0, 0.2)
   const particleEdgeThicknessPx = 0.5
-  const circleEdgeColour: vec4 = vec4.fromValues(0, 0, 0, 1)
+  const circleEdgeColour: vec4 = vec4.fromValues(0, 0, 0, 0.6)
   const circleHighlightColour: vec4 = vec4.fromValues(1, 1, 1, 1)
-  const circleEdgeThicknessPx = 1
+  // edge constitutes part of the length of the radius
+  const circleEdgeThicknessPx = 5
+  // bleed constitutes part of the length of the edge
+  const circleBorderBleedPx = 2
 
   const temporalBlendColor = new Float32Array([0, 0, 0, 0.85])
 
@@ -911,19 +899,14 @@ export const onContext = ({
       gl.bindBuffer(gl.ARRAY_BUFFER, null)
     }
 
-    // if (circles.centres.length > 0) {
     if (circles.triangleFans.length > 0) {
       drawCircles(
-        // pixelsPerMetre,
-        // canvasToClipSpaceRatio,
-        // circles.centres.length,
+        pixelsPerMetre,
         circles.triangleFans.length,
         circles.triangleFans.vertices,
         circles.centres,
         circleTriangleFanBuffer,
-        // circleRadiusBuffer,
         circles.radii,
-        // circleColourBuffer
         circles.colours
       )
     }

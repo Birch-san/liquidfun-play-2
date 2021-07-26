@@ -240,7 +240,7 @@ export class GrowableTriangleFanArray extends GrowableTypedArray<Float32Array> {
 
 export const growableVec2Array = new GrowableVec2Array()
 export const circleCentreArray = new GrowableVec2Array()
-export const circleTriangleFanArray = new GrowableTriangleFanArray(8)
+export const circleTriangleFanArray = new GrowableTriangleFanArray(20)
 export const circleRadiusArray = new GrowableRadiusArray()
 export const particleCentreArray = new GrowableVec2Array()
 export const randomRadiusArray = new GrowableRandomRadiusArray()
