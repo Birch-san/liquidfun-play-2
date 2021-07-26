@@ -43,6 +43,7 @@ export interface DemoResources {
   worldStep: WorldStep
   destroyDemo: DestroyDemo
   matrixMutator: MutateMatrix
+  matrixMutatorMetresToCanvas?: MutateMatrix
   getPixelsPerMeter: GetPixelsPerMeter
   eventHandlers?: EventHandlers
 }

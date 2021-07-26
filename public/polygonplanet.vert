@@ -1,6 +1,7 @@
 precision mediump float;
 attribute vec2 a_position;
-// uniform vec2 u_position;
+// uniform vec2 u_center;
+// varying vec2 v_center;
 // attribute float a_radius;
 // attribute vec4 a_colour;
 uniform mat3 u_matrix;

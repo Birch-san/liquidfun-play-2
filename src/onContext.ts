@@ -74,6 +74,7 @@ export interface OnContextParams {
   getDrawBuffer: GetDrawBuffer
   flushDrawBuffer: FlushDrawBuffer
   mutateMatrix: MutateMatrix
+  mutateMatrixMetresToCanvas: MutateMatrix
   getPixelsPerMeter: GetPixelsPerMeter
 }
 
@@ -104,6 +105,7 @@ export const onContext = ({
   getDrawBuffer,
   flushDrawBuffer,
   mutateMatrix,
+  mutateMatrixMetresToCanvas,
   getPixelsPerMeter
 }: OnContextParams): Draw => {
   const compile = (type: GLenum, shaderName: string, shaderSource: string): WebGLShader => {
@@ -182,11 +184,14 @@ export const onContext = ({
   }
 
   const mat: mat3 = mat3.create()
+  const matMetresToCanvas: mat3 = mat3.create()
 
   const updateMatrix = (): void => {
     const { identity } = mat3
     identity(mat)
+    identity(matMetresToCanvas)
     mutateMatrix(mat, gl.canvas.width, gl.canvas.height)
+    mutateMatrixMetresToCanvas?.(matMetresToCanvas, gl.canvas.width, gl.canvas.height)
   }
 
   const getAttribLocation = (programName: keyof typeof programs, name: string): GLint => {
@@ -280,7 +285,7 @@ export const onContext = ({
     },
     polygonplanet: {
       attrib: ['a_position'] as const,
-      uniform: ['u_matrix', 'u_edge_size_px', 'u_highlight_colour', 'u_edge_colour', 'u_colour', 'u_diameter_px'] as const
+      uniform: ['u_matrix', 'u_matrix_metres_to_canvas', 'u_centre', 'u_edge_size_px', 'u_highlight_colour', 'u_edge_colour', 'u_colour', 'u_diameter_px'] as const
     }
   })
 
@@ -747,15 +752,17 @@ export const onContext = ({
     gl.uniform4fv(locations.polygonplanet.uniform.u_edge_colour, circleEdgeColour)
     gl.uniform4fv(locations.polygonplanet.uniform.u_highlight_colour, circleHighlightColour)
     gl.uniformMatrix3fv(locations.polygonplanet.uniform.u_matrix, false, mat)
-    
+    gl.uniformMatrix3fv(locations.polygonplanet.uniform.u_matrix_metres_to_canvas, false, matMetresToCanvas)
+
     gl.bindBuffer(gl.ARRAY_BUFFER, triangleFanBuffer)
     gl.enableVertexAttribArray(locations.polygonplanet.attrib.a_position)
-    // WEBGL_multi_draw extension would be better than loop, but many devices do not support it.
+    // WebGL2's drawArraysInstanced would be better than loop, but some devices do not support it.
+    // likewise WEBGL_multi_draw extension may work too, but many devices do not support it.
     // we also cannot draw a single array of points via gl_PointSize, as this only supports tiny circles.
     // console.log(positions.getBuffer())
     for (let i = 0; i < circleCount; i++) {
       gl.uniform1f(locations.polygonplanet.uniform.u_diameter_px, radii.get(i) * 2)
-      // gl.uniform2fv(locations.polygonplanet.uniform.u_position, positions.getBuffer(), 2 * i, 2)
+      gl.uniform2fv(locations.polygonplanet.uniform.u_centre, positions.getBuffer(), 2 * i, 2)
       gl.uniform4fv(locations.polygonplanet.uniform.u_colour, colours.getBuffer(), 4 * i, 4)
       gl.vertexAttribPointer(locations.polygonplanet.attrib.a_position, 2, gl.FLOAT, false, 0, 0)
       gl.drawArrays(gl.TRIANGLE_FAN, (verticesPerCircle + 2) * i, verticesPerCircle + 2)
