@@ -11,7 +11,7 @@ export const box2D: typeof Box2D & EmscriptenModule = await Box2DFactory({
    * so we climb out of /dist/ and into its sibling, /box2d-wasm/
    */
   locateFile: (url: string): string =>
-    `${new URL('../../box2d-wasm', import.meta.url).toString()}/${url}`
+    `${new URL('../box2d-wasm', import.meta.url).toString()}/${url}`
 })
 
 /**

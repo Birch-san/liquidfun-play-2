@@ -11,7 +11,7 @@ module.exports = {
   plugins: [
     '@snowpack/plugin-svelte',
     ['@snowpack/plugin-typescript', { args: '--project ./src' }],
-    ['@efox/snowpack-plugin-webpack5', {
+    ['@snowpack/plugin-webpack', {
       /** @param {import("webpack").Configuration } config */
       extendConfig: (config) => {
         Object.assign(config.resolve.fallback ??= {}, { fs: false, path: false });
@@ -21,6 +21,12 @@ module.exports = {
         }))
         return config
       }
+    }],
+    ['snowpack-plugin-copy', {
+      patterns: [{
+        source: dirname(require.resolve('box2d-wasm')),
+        destination: 'build/box2d-wasm'
+      }]
     }]
   ],
   routes: [
@@ -38,6 +44,7 @@ module.exports = {
     /* ... */
   },
   buildOptions: {
+    baseUrl: 'https://birchlabs.co.uk/liquidfun-wasm/'
     /* ... */
   }
 }

@@ -3,7 +3,7 @@ import { growableQuadIndexArray } from './growableTypedArray'
 import type { DrawBuffer, ParticleBuffers } from './debugDraw'
 import { mat3, vec4 } from 'gl-matrix'
 
-const getAssetURL = (asset: string): URL => new URL(`../../${asset}`, import.meta.url)
+const getAssetURL = (asset: string): URL => new URL(`../${asset}`, import.meta.url)
 
 const getShaderSource = async (name: string): Promise<string> => {
   const shaderResponse: Response = await fetch(getAssetURL(name).toString())
