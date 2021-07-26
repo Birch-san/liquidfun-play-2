@@ -11,6 +11,7 @@
     flushDrawBuffer,
     mainLoop as physics,
     mutateMatrix,
+    mutateMatrixMetresToCanvas,
     pixelsPerMeterGetter as getPixelsPerMeter,
     switchDemo,
     eventHandlers,
@@ -95,7 +96,7 @@
   
   onMount(() => {
     assert(canvasElement)
-    switchDemo(demo)
+    switchDemo(demo, waveMachineGravity)
     const gl: WebGL2RenderingContext | WebGLRenderingContext = getWebGLContext(canvasElement)
     setClearCanvas(() => gl.clear(gl.COLOR_BUFFER_BIT))
     const onContextParams: OnContextParams = {
@@ -103,6 +104,7 @@
       getDrawBuffer,
       flushDrawBuffer,
       mutateMatrix,
+      mutateMatrixMetresToCanvas,
       getPixelsPerMeter
     }
     const draw: Draw = onContext(onContextParams)

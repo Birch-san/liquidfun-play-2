@@ -18,6 +18,7 @@ let destroyDemo: DestroyDemo | undefined
 let worldStep: WorldStep | undefined
 let clearCanvas: ClearCanvas | undefined
 let matrixMutator: MutateMatrix | undefined
+let matrixMutatorMetresToCanvas: MutateMatrix | undefined
 let getPixelsPerMeter: GetPixelsPerMeter | undefined
 export let eventHandlers: EventHandlers | undefined
 
@@ -26,6 +27,7 @@ export const switchDemo = (proposedDemo: Demo, waveMachineGravity: WaveMachineGr
   destroyDemo = undefined
   worldStep = undefined
   matrixMutator = undefined
+  matrixMutatorMetresToCanvas = undefined
   getPixelsPerMeter = undefined
   clearCanvas?.()
   switch (proposedDemo) {
@@ -38,7 +40,7 @@ export const switchDemo = (proposedDemo: Demo, waveMachineGravity: WaveMachineGr
       break
     }
     case Demo.Gravity: {
-      ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter, eventHandlers } = makeGravityDemo(debugDraw))
+      ({ world, destroyDemo, worldStep, matrixMutator, matrixMutatorMetresToCanvas, getPixelsPerMeter, eventHandlers } = makeGravityDemo(debugDraw))
       break
     }
     case Demo.WaveMachine: {
@@ -60,6 +62,9 @@ export const getDrawBuffer: GetDrawBuffer = (): DrawBuffer => {
 
 export const mutateMatrix: MutateMatrix = (out: mat3, canvasWidth: number, canvasHeight: number): void =>
   matrixMutator?.(out, canvasWidth, canvasHeight)
+
+export const mutateMatrixMetresToCanvas: MutateMatrix = (out: mat3, canvasWidth: number, canvasHeight: number): void =>
+  matrixMutatorMetresToCanvas?.(out, canvasWidth, canvasHeight)
 
 export const pixelsPerMeterGetter: GetPixelsPerMeter = (): number =>
   getPixelsPerMeter?.() ?? 32

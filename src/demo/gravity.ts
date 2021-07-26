@@ -77,6 +77,13 @@ export const makeGravityDemo = (
     mat: mat3.create()
   } as const
 
+  const metresToPixels = {
+    scaleMetresToPixelsAndFlipY: vec2.fromValues(pixelsPerMeter, -pixelsPerMeter),
+    coord: vec2.create(),
+    mat: mat3.create(),
+    translateOriginBottomToTop: vec2.create()
+  } as const
+
   const mousePos = new b2Vec2(0, 0)
 
   const updateMousePos = ({ x, y }: ClickPos): void => {
@@ -91,6 +98,7 @@ export const makeGravityDemo = (
     transformMat3(coord, coord, mat)
     {
       const [x, y] = coord
+      // console.log(x, y)
       mousePos.Set(x, y)
     }
     mouseJoint.SetTarget(mousePos)
@@ -347,6 +355,17 @@ export const makeGravityDemo = (
         -1 / (canvasHeight / 2 / pixelsPerMeter)
       )
       scale(mat, mat, scaler)
+      translate(mat, mat, pos)
+    },
+    matrixMutatorMetresToCanvas: (mat: mat3, _canvasWidth: number, canvasHeight: number): void => {
+      const { pos } = cameraMetres
+      const { scaleMetresToPixelsAndFlipY, translateOriginBottomToTop } = metresToPixels
+      const { identity, scale, translate } = mat3
+      const { set } = vec2
+      identity(mat)
+      set(translateOriginBottomToTop, 0, canvasHeight)
+      translate(mat, mat, translateOriginBottomToTop)
+      scale(mat, mat, scaleMetresToPixelsAndFlipY)
       translate(mat, mat, pos)
     },
     destroyDemo: (): void => {
