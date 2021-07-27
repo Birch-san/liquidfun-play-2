@@ -126,20 +126,53 @@
 </script>
   
 <style>
-  .fatal-error {
-    color: darkred;
+  table.perf {
+    table-layout: fixed;
   }
-  .perf-tracer {
-    display: inline-block;
-    width: 25em;
+  table.perf td, table.perf th {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .perf-head {
+    font-size: 0.8em;
+    font-weight: bold;
+  }
+  details {
+    margin-bottom: 1em;
+  }
+  details > summary {
+    font-size: 0.8em;
+    text-decoration-style: dotted;
+    text-decoration-color: black;
+    text-decoration-line: underline;
+    cursor: pointer;
+  }
+  details > summary:first-of-type {
+    display: block;
+    /* counter-increment: list-item 0;
+    list-style: inside disclosure-closed; */
+  }
+  .perf-reading-head {
+    text-align: right;
+  }
+  .perf-head-column {
+    width: 8em;
+  }
+  .perf-reading {
+    text-align: right;
+    font-family: monospace;
+    width: 6em;
+    height: 1em;
   }
 </style>
 
+<p><small>
 {#if hasSIMD}
-<div><small>Your browser supports <a href="https://v8.dev/features/simd">WebAssembly SIMD</a>, so we will use it.</small></div>
+Your browser supports <a href="https://v8.dev/features/simd">WebAssembly SIMD</a>, so we will use it.
 {:else}
-<div><small>Your browser does not support a <a href="https://v8.dev/features/simd">WebAssembly SIMD</a>; falling back to standard WebAssembly featureset.</small></div>
+Your browser does not support a <a href="https://v8.dev/features/simd">WebAssembly SIMD</a>; falling back to standard WebAssembly featureset.
 {/if}
+</small></p>
 <!-- <dl>
   <dt><small>'Physics' speed:</small></dt>
   <dd><small>time taken to run one timestep of the physics simulation</small></dd>
@@ -152,20 +185,47 @@ Usually the bottleneck is AnimationFrame scheduling; we can simulate physics at 
 "Achievable framerate" is an extrapolation that does not consider realities like CPU temperature.
 </small>
 </p> -->
-<pre class="perf-tracer">
-  Physics 
-  Average frame duration (ms):
-  {statsModel.physics.avgFrameDurationMs.toFixed(2)}
-  Achievable frame rate (fps):
-  {Math.floor(statsModel.physics.avgFrameRate)}
-</pre>
-<pre class="perf-tracer">
-  AnimationFrame
-  Average schedule wait (ms):
-  {statsModel.animationFrame.avgFrameDurationMs.toFixed(2)}
-  Achievable frame rate (fps):
-  {Math.floor(statsModel.animationFrame.avgFrameRate)}
-</pre>
+<table class="perf">
+  <thead>
+    <th class="info-head perf-head-column"></th>
+    <th class="perf-head perf-head-column perf-reading-head">Duration (ms)</th>
+    <th class="perf-head perf-head-column perf-reading-head">Rate (/sec)</th>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="perf-head">Physics</td>
+      <td class="perf-reading">{statsModel.physics.avgFrameDurationMs.toFixed(2)}</td>
+      <td class="perf-reading">{Math.floor(statsModel.physics.avgFrameRate)}</td>
+    </tr>
+    <tr>
+      <td class="perf-head">Paint interval</td>
+      <td class="perf-reading">{statsModel.animationFrame.avgFrameDurationMs.toFixed(2)}</td>
+      <td class="perf-reading">{Math.floor(statsModel.animationFrame.avgFrameRate)}</td>
+    </tr>
+  </tbody>
+</table>
+<details>
+  <summary>Performance explanation</summary>
+  <dl>
+    <dt><small>Physics duration:</small></dt>
+    <dd><small>time taken to run one timestep of the physics simulation</small></dd>
+    <dt><small>Paint interval:</small></dt>
+    <dd><small>interval between requestAnimationFrame callbacks (i.e. how frequently the browser repaints)</small></dd>
+  </dl>
+  <p><small>
+    The times displayed are the mean average of the last 10 frames computed.<br>
+    On-CPU time taken to render the game world is neglible (~0.5ms with simple shader), so we do not measure render time.<br>
+    Usually the bottleneck is the paint interval; we can simulate physics at a higher framerate, but browser does not ask us to paint any more frequently. Generally this will be <a href="https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame">capped at the refresh rate of the monitor</a>.<br>
+    </small>
+  </p>
+  <p><small>
+    Where <a href="https://v8.dev/features/simd">WebAssembly SIMD</a> is available, we benefit from the SIMD optimizations applied by LLVM's autovectorizer. This is not expected to affect a substantial amount of the hot paths in the code; on box2d-wasm I <a href="https://github.com/Birch-san/box2d.ts/pull/1">measured a &lt;1% speed difference</a>, but liquidfun-wasm's particle simulation hits different code which will autovectorize differently (not yet measured).
+  </small></p>
+  <p><small>
+    The <strong>physics rate</strong> can be thought of as our <em>maximum achievable framerate</em> (though this simple extrapolation ignores realities like CPU temperature).<br>  
+    The <strong>paint interval rate</strong> can be thought of as our actual achieved framerate.
+  </small></p>
+</details>
 <canvas
 bind:this={canvasElement}
 on:pointerdown={handleMouseDown}
