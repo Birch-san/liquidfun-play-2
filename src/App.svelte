@@ -6,6 +6,7 @@
   import { Effect, onContext } from './onContext'
   import type { ClickPos } from './demo'
   import { Demo, WaveMachineGravity } from './demo'
+  import type { DemoParams } from './demoSwitcher'
   import {
     getDrawBuffer,
     flushDrawBuffer,
@@ -35,16 +36,19 @@
 
   let demo: Demo = Demo.Gravity
 
-  let waveMachineGravity: WaveMachineGravity = WaveMachineGravity.Down
+  const demoParams: DemoParams = {
+    waveMachineGravity: WaveMachineGravity.Down,
+    dragEnabled: false
+  }
   
   const onChangeDemo = (event: Event): void => {
     event.stopPropagation()
-    switchDemo(demo, waveMachineGravity)
+    switchDemo(demo, demoParams)
   }
 
-  const onChangeWaveMachineGravity = (event: Event): void => {
+  const onChangeDemoParams = (event: Event): void => {
     event.stopPropagation()
-    switchDemo(demo, waveMachineGravity)
+    switchDemo(demo, demoParams)
   }
 
   let effect = Effect.Refraction
@@ -95,7 +99,7 @@
   
   onMount(() => {
     assert(canvasElement)
-    switchDemo(demo, waveMachineGravity)
+    switchDemo(demo, demoParams)
     const gl: WebGL2RenderingContext | WebGLRenderingContext = getWebGLContext(canvasElement)
     setClearCanvas(() => gl.clear(gl.COLOR_BUFFER_BIT))
     const onContextParams: OnContextParams = {
@@ -136,7 +140,7 @@
 {:else}
 <div><small>Your browser does not support a <a href="https://v8.dev/features/simd">WebAssembly SIMD</a>; falling back to standard WebAssembly featureset.</small></div>
 {/if}
-<dl>
+<!-- <dl>
   <dt><small>'Physics' speed:</small></dt>
   <dd><small>time taken to run one timestep of the physics simulation</small></dd>
   <dt><small>'AnimationFrame' speed:</small></dt>
@@ -147,7 +151,7 @@
 Usually the bottleneck is AnimationFrame scheduling; we can simulate physics at a higher framerate, but browser does not want to paint any more frequently.<br>
 "Achievable framerate" is an extrapolation that does not consider realities like CPU temperature.
 </small>
-</p>
+</p> -->
 <pre class="perf-tracer">
   Physics 
   Average frame duration (ms):
@@ -193,17 +197,24 @@ height={height}
 </fieldset>
 {#if demo === Demo.Gravity}
 <div><small>A small planet is attached to your mouse, and attracts the water.</small></div>
+<fieldset>
+  <legend>Drag</legend>
+  <label>
+    <input type=checkbox bind:checked={demoParams.dragEnabled} on:change={onChangeDemoParams}>
+    Enabled
+  </label>
+</fieldset>
 {/if}
 {#if demo === Demo.WaveMachine}
 <div><small>Click and drag with your mouse to push the water around.</small></div>
 <fieldset>
   <legend>Gravity</legend>
   <label>
-    <input type=radio bind:group={waveMachineGravity} value={WaveMachineGravity.Down} on:change={onChangeWaveMachineGravity}>
+    <input type=radio bind:group={demoParams.waveMachineGravity} value={WaveMachineGravity.Down} on:change={onChangeDemoParams}>
     Down
   </label>
   <label>
-    <input type=radio bind:group={waveMachineGravity} value={WaveMachineGravity.None} on:change={onChangeWaveMachineGravity}>
+    <input type=radio bind:group={demoParams.waveMachineGravity} value={WaveMachineGravity.None} on:change={onChangeDemoParams}>
     None
   </label>
 </fieldset>

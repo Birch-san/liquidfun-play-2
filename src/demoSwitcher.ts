@@ -22,7 +22,12 @@ let matrixMutatorMetresToCanvas: MutateMatrix | undefined
 let getPixelsPerMeter: GetPixelsPerMeter | undefined
 export let eventHandlers: EventHandlers | undefined
 
-export const switchDemo = (proposedDemo: Demo, waveMachineGravity: WaveMachineGravity): void => {
+export interface DemoParams {
+  waveMachineGravity: WaveMachineGravity
+  dragEnabled: boolean
+}
+
+export const switchDemo = (proposedDemo: Demo, { dragEnabled, waveMachineGravity }: DemoParams): void => {
   destroyDemo?.()
   destroyDemo = undefined
   worldStep = undefined
@@ -40,7 +45,7 @@ export const switchDemo = (proposedDemo: Demo, waveMachineGravity: WaveMachineGr
       break
     }
     case Demo.Gravity: {
-      ({ world, destroyDemo, worldStep, matrixMutator, matrixMutatorMetresToCanvas, getPixelsPerMeter, eventHandlers } = makeGravityDemo(debugDraw))
+      ({ world, destroyDemo, worldStep, matrixMutator, matrixMutatorMetresToCanvas, getPixelsPerMeter, eventHandlers } = makeGravityDemo(debugDraw, dragEnabled))
       break
     }
     case Demo.WaveMachine: {

@@ -6,7 +6,8 @@ import { assert } from '../assert'
 const { box2D } = await import('../box2d')
 
 export const makeGravityDemo = (
-  debugDraw: Box2D.b2Draw
+  debugDraw: Box2D.b2Draw,
+  dragEnabled: boolean
 ): DemoResources => {
   const {
     b2_dynamicBody,
@@ -336,9 +337,9 @@ export const makeGravityDemo = (
 
       applyGravity()
 
-      // works, but disabled since the effect is barely noticeable and not free.
-      // you need an unrealistically tall atmosphere in order for particles to fit beneath.
-      // applyDrag()
+      if (dragEnabled) {
+        applyDrag()
+      }
 
       world.Step(intervalSecs, 1, 1, particleIterations)
     },
