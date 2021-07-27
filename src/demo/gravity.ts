@@ -132,11 +132,11 @@ export const makeGravityDemo = (
   const circleGravitySourceSpecs: CircleGravitySourceSpec[] = [{
     position: vec2.fromValues(1, 1.5),
     radius: ourEarthRadiusMetres,
-    atmosphereHeight: 0.5
+    atmosphereHeight: 0.8
   }, {
     position: vec2.fromValues(-1, 0),
     radius: 0.7,
-    atmosphereHeight: 0.5
+    atmosphereHeight: 0.7
   }, {
     radius: 0.2,
     position: vec2.fromValues(-1, -1),

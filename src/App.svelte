@@ -254,19 +254,24 @@ height={height}
     <input type=radio bind:group={demo} value={Demo.None} on:change={onChangeDemo}>
     None
   </label> -->
+  {#if demo === Demo.Gravity}
+  <div><small>A small planet is attached to your mouse, and attracts the water.</small></div>
+  {/if}
+  {#if demo === Demo.WaveMachine}
+  <div><small>Click and drag with your mouse to push the water around.</small></div>
+  {/if}
 </fieldset>
 {#if demo === Demo.Gravity}
-<div><small>A small planet is attached to your mouse, and attracts the water.</small></div>
 <fieldset>
   <legend>Drag</legend>
   <label>
     <input type=checkbox bind:checked={demoParams.dragEnabled} on:change={onChangeDemoParams}>
     Enabled
   </label>
+  <div><small>'Drag' simulates an atmosphere with a height 1 planet-radius above the surface of the planet. The atmosphere density varies like Earth's. Atmosphere slows down fast-moving particles, making them more likely to fall down to the planet than to continue orbiting. Drag is computationally-intensive and may reduce framerate.</small></div>
 </fieldset>
 {/if}
 {#if demo === Demo.WaveMachine}
-<div><small>Click and drag with your mouse to push the water around.</small></div>
 <fieldset>
   <legend>Gravity</legend>
   <label>
