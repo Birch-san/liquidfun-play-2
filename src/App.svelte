@@ -173,18 +173,6 @@ Your browser supports <a href="https://v8.dev/features/simd">WebAssembly SIMD</a
 Your browser does not support a <a href="https://v8.dev/features/simd">WebAssembly SIMD</a>; falling back to standard WebAssembly featureset.
 {/if}
 </small></p>
-<!-- <dl>
-  <dt><small>'Physics' speed:</small></dt>
-  <dd><small>time taken to run one timestep of the physics simulation</small></dd>
-  <dt><small>'AnimationFrame' speed:</small></dt>
-  <dd><small>how frequently the browser repaints</small></dd>
-</dl>
-<p>
-<small>On-CPU time taken to render the game world is neglible (~0.5ms with simple shader).<br>
-Usually the bottleneck is AnimationFrame scheduling; we can simulate physics at a higher framerate, but browser does not want to paint any more frequently.<br>
-"Achievable framerate" is an extrapolation that does not consider realities like CPU temperature.
-</small>
-</p> -->
 <table class="perf">
   <thead>
     <th class="info-head perf-head-column"></th>
