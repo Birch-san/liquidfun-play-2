@@ -62,6 +62,16 @@ const toleranceMs = 0.1
  */
 const maxIntervalToSimulate = frameIntervalMs * 3
 
+/**
+ * we want to finish comfortably within 1/60th of a second,
+ * otherwise scheduler won't ask us for another animation frame
+ * 1/60 secs from now.
+ * note that physics isn't the only thing we compute per time step,
+ * but it substantially dominates time (rendering happens afterward,
+ * but takes ~1ms on-CPU time)
+ */
+const physicsDeadlineMs = frameIntervalMs * 0.7
+
 export const doLoop = ({
   draw,
   physics,
@@ -102,10 +112,33 @@ export const doLoop = ({
      * if we want to simulate more than 1/60th of a second, we should do so by simulating 1/60th multiple times,
      * rather than by cranking up particle iterations.
      */
+    let iterations = 0
+    let computationTimeAccMs = 0
+    const simulateMs = Math.min(elapsedMs, frameIntervalMs)
     for (let simulatedMs = 0; simulatedMs < Math.min(elapsedMs, maxIntervalToSimulate) - toleranceMs;) {
-      const simulateMs = Math.min(elapsedMs, frameIntervalMs)
       physics(simulateMs)
       simulatedMs += simulateMs
+
+      /**
+       * why are we being asked to simulate more than 1/60th second?
+       * if it's a one-off (e.g. process momentarily deprioritised, or GC pause),
+       * then we have a good chance to catch-up to real-time (and this will combat
+       * motion-sickness).
+       *
+       * but if the gap in being scheduled is because the CPU's running too hot
+       * to keep up with demand: trying to catch-up the lost time only worsens the problem;
+       * better failure mode is to throttle the simulation (which will look like slow-mo).
+       */
+      iterations++
+      computationTimeAccMs = performance.now() - preMeasureMs
+      const avgComputationTimeMs = computationTimeAccMs / iterations
+      const timeToSimulateAnother60thMs = computationTimeAccMs + avgComputationTimeMs
+      // would computing another frame exceed our deadline?
+      if (timeToSimulateAnother60thMs > physicsDeadlineMs) {
+        // fine, go slow-motion instead
+        // (gives CPU a chance to cool down)
+        break
+      }
     }
 
     {
