@@ -27,13 +27,18 @@ export interface Stats {
   avgFrameDurationMs: number
   avgFrameRate: number
 }
+export interface OnSimulationSpeedParams {
+  percent: number
+}
 
 export type GetEffect = () => Effect
 export type OnStats = (stats: OnStatsParams) => void
+export type OnSimulationSpeed = (stats: OnSimulationSpeedParams) => void
 export interface DoLoopParams {
   draw: Draw
   physics: MainLoop
   onStats: OnStats
+  onSimulationSpeed: OnSimulationSpeed
   getEffect: GetEffect
 }
 
@@ -43,6 +48,9 @@ const onStatsParams: OnStatsParams = {
     avgFrameDurationMs: 0,
     avgFrameRate: 0
   }
+}
+const onSimulationSpeedParams: OnSimulationSpeedParams = {
+  percent: 0
 }
 
 // our "time elapsed since last rAF" isn't super-consistent
@@ -76,6 +84,7 @@ export const doLoop = ({
   draw,
   physics,
   onStats,
+  onSimulationSpeed,
   getEffect
 }: DoLoopParams): StopLoop => {
   let renderHandle: number | undefined
@@ -115,7 +124,8 @@ export const doLoop = ({
     let iterations = 0
     let computationTimeAccMs = 0
     const simulateMs = Math.min(elapsedMs, frameIntervalMs)
-    for (let simulatedMs = 0; simulatedMs < Math.min(elapsedMs, maxIntervalToSimulate) - toleranceMs;) {
+    let simulatedMs = 0
+    for (; simulatedMs < Math.min(elapsedMs, maxIntervalToSimulate) - toleranceMs;) {
       physics(simulateMs)
       simulatedMs += simulateMs
 
@@ -140,6 +150,9 @@ export const doLoop = ({
         break
       }
     }
+
+    onSimulationSpeedParams.percent = simulatedMs / elapsedMs * 100
+    onSimulationSpeed(onSimulationSpeedParams)
 
     {
       const durationMs = performance.now() - beforePhysicsMs

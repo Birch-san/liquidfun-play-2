@@ -18,7 +18,7 @@
     eventHandlers,
     setClearCanvas
   } from './demoSwitcher'
-  import type { StatsType, Stats, OnStatsParams } from './loop'
+  import type { StatsType, Stats, OnSimulationSpeedParams, OnStatsParams } from './loop'
   import { doLoop, statsTypes } from './loop'
   import { hasSIMD } from './hasSIMD'
 
@@ -31,6 +31,8 @@
     avgFrameRate: 0
     // eslint-disable-next-line no-sequences
   }, acc), {}) as Record<StatsType, Stats>
+
+  let simulationSpeedPercent = 0
 
   let canvasElement: HTMLCanvasElement | undefined
 
@@ -120,6 +122,9 @@
         Object.assign(statsModel[statsType], stats)
         // trigger Svelte's change-detection
         statsModel = statsModel
+      },
+      onSimulationSpeed: ({ percent }: OnSimulationSpeedParams) => {
+        simulationSpeedPercent = percent
       }
     })
   })
@@ -197,6 +202,18 @@ Your browser does not support a <a href="https://v8.dev/features/simd">WebAssemb
     </tr>
   </tbody>
 </table>
+<table>
+  <thead>
+    <th class="info-head perf-head-column"></th>
+    <th class="perf-head perf-head-column perf-reading-head">of real-time (%)</th>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="perf-head">Simulation speed</td>
+      <td class="perf-reading">{Math.ceil(simulationSpeedPercent)}</td>
+    </tr>
+  </tbody>
+</table>
 <details>
   <summary>Performance explanation</summary>
   <dl>
@@ -206,9 +223,11 @@ Your browser does not support a <a href="https://v8.dev/features/simd">WebAssemb
     <dd><small>On-CPU time spent preparing vertex buffers and sending them to WebGL</small></dd>
     <dt><small>Paint interval:</small></dt>
     <dd><small>interval between requestAnimationFrame callbacks (i.e. how frequently the browser repaints)</small></dd>
+    <dt><small>Simulation speed:</small></dt>
+    <dd><small>if we determine that we lack the time to finish simulating the demanded duration: we exit early (after simulating only part of the elapsed time), and the result will be slow-motion.</small></dd>
   </dl>
   <p><small>
-    The times displayed are the mean average of the last 10 frames computed.<br>
+    Durations and rates displayed are the mean average of the last 10 frames computed.<br>
     Usually the bottleneck is the paint interval; we can simulate physics at a higher framerate, but browser does not ask us to paint any more frequently. Generally this will be <a href="https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame">capped at the refresh rate of the monitor</a>.<br>
     </small>
   </p>
