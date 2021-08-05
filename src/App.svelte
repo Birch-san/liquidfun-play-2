@@ -186,6 +186,11 @@ Your browser does not support a <a href="https://v8.dev/features/simd">WebAssemb
       <td class="perf-reading">{Math.floor(statsModel.physics.avgFrameRate)}</td>
     </tr>
     <tr>
+      <td class="perf-head">Render (on-CPU)</td>
+      <td class="perf-reading">{statsModel.render.avgFrameDurationMs.toFixed(2)}</td>
+      <td class="perf-reading">{Math.floor(statsModel.render.avgFrameRate)}</td>
+    </tr>
+    <tr>
       <td class="perf-head">Paint interval</td>
       <td class="perf-reading">{statsModel.animationFrame.avgFrameDurationMs.toFixed(2)}</td>
       <td class="perf-reading">{Math.floor(statsModel.animationFrame.avgFrameRate)}</td>
@@ -197,12 +202,13 @@ Your browser does not support a <a href="https://v8.dev/features/simd">WebAssemb
   <dl>
     <dt><small>Physics duration:</small></dt>
     <dd><small>time taken to run one timestep of the physics simulation</small></dd>
+    <dt><small>Render duration:</small></dt>
+    <dd><small>On-CPU time spent preparing vertex buffers and sending them to WebGL</small></dd>
     <dt><small>Paint interval:</small></dt>
     <dd><small>interval between requestAnimationFrame callbacks (i.e. how frequently the browser repaints)</small></dd>
   </dl>
   <p><small>
     The times displayed are the mean average of the last 10 frames computed.<br>
-    On-CPU time taken to render the game world is neglible (~0.5ms with simple shader), so we do not measure render time.<br>
     Usually the bottleneck is the paint interval; we can simulate physics at a higher framerate, but browser does not ask us to paint any more frequently. Generally this will be <a href="https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame">capped at the refresh rate of the monitor</a>.<br>
     </small>
   </p>

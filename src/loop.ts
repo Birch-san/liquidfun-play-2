@@ -11,7 +11,7 @@ interface StatsState {
   frameDurationsMs: Float32Array
   frameDurationIx: number
 }
-export const statsTypes = ['physics', 'animationFrame'] as const
+export const statsTypes = ['physics', 'render', 'animationFrame'] as const
 export type StatsType = typeof statsTypes[number]
 // eslint-disable-next-line no-return-assign
 const statsState: Record<StatsType, StatsState> = statsTypes.reduce<Partial<Record<StatsType, StatsState>>>((acc, next) => (acc[next] = {
@@ -97,7 +97,7 @@ export const doLoop = ({
       onStats(onStatsParams)
     }
 
-    const preMeasureMs = performance.now()
+    const beforePhysicsMs = performance.now()
 
     /**
      * animation frames are typically scheduled at 60fps,
@@ -130,7 +130,7 @@ export const doLoop = ({
        * better failure mode is to throttle the simulation (which will look like slow-mo).
        */
       iterations++
-      computationTimeAccMs = performance.now() - preMeasureMs
+      computationTimeAccMs = performance.now() - beforePhysicsMs
       const avgComputationTimeMs = computationTimeAccMs / iterations
       const timeToSimulateAnother60thMs = computationTimeAccMs + avgComputationTimeMs
       // would computing another frame exceed our deadline?
@@ -142,7 +142,7 @@ export const doLoop = ({
     }
 
     {
-      const durationMs = performance.now() - preMeasureMs
+      const durationMs = performance.now() - beforePhysicsMs
       statsState.physics.frameDurationIx = (statsState.physics.frameDurationIx + 1) % statsState.physics.frameDurationsMs.length
       statsState.physics.frameDurationsMs[statsState.physics.frameDurationIx] = durationMs
       const avgFrameDurationMs = statsState.physics.frameDurationsMs.reduce<number>((acc, next) => acc + next, 0) / statsState.physics.frameDurationsMs.length
@@ -152,7 +152,21 @@ export const doLoop = ({
       onStats(onStatsParams)
     }
 
+    const beforeDrawMs = performance.now()
+
     draw(getEffect(), elapsedMs)
+
+    {
+      const durationMs = performance.now() - beforeDrawMs
+      statsState.render.frameDurationIx = (statsState.render.frameDurationIx + 1) % statsState.render.frameDurationsMs.length
+      statsState.render.frameDurationsMs[statsState.render.frameDurationIx] = durationMs
+      const avgFrameDurationMs = statsState.render.frameDurationsMs.reduce<number>((acc, next) => acc + next, 0) / statsState.render.frameDurationsMs.length
+      onStatsParams.statsType = 'render'
+      onStatsParams.stats.avgFrameDurationMs = avgFrameDurationMs
+      onStatsParams.stats.avgFrameRate = 1 / avgFrameDurationMs * 1000
+      onStats(onStatsParams)
+    }
+
     renderHandle = requestAnimationFrame(renderTask)
   }
   renderHandle = requestAnimationFrame(renderTask)
