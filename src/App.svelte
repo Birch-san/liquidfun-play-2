@@ -117,7 +117,7 @@
       getEffect: () => effect,
       physics,
       onStats: ({ statsType, stats }: OnStatsParams) => {
-        statsModel[statsType] = stats
+        Object.assign(statsModel[statsType], stats)
         // trigger Svelte's change-detection
         statsModel = statsModel
       }

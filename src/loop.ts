@@ -193,6 +193,14 @@ export interface DoLoopParams {
 //   }
 // }
 
+const onStatsParams: OnStatsParams = {
+  statsType: 'animationFrame',
+  stats: {
+    avgFrameDurationMs: 0,
+    avgFrameRate: 0
+  }
+}
+
 export const doLoop = ({
   draw,
   physics,
@@ -210,13 +218,10 @@ export const doLoop = ({
       statsState.animationFrame.frameDurationIx = (statsState.animationFrame.frameDurationIx + 1) % statsState.animationFrame.frameDurationsMs.length
       statsState.animationFrame.frameDurationsMs[statsState.animationFrame.frameDurationIx] = elapsedMs
       const avgFrameDurationMs = statsState.animationFrame.frameDurationsMs.reduce<number>((acc, next) => acc + next, 0) / statsState.physics.frameDurationsMs.length
-      onStats({
-        statsType: 'animationFrame',
-        stats: {
-          avgFrameDurationMs: avgFrameDurationMs,
-          avgFrameRate: 1 / avgFrameDurationMs * 1000
-        }
-      })
+      onStatsParams.statsType = 'animationFrame'
+      onStatsParams.stats.avgFrameDurationMs = avgFrameDurationMs
+      onStatsParams.stats.avgFrameRate = 1 / avgFrameDurationMs * 1000
+      onStats(onStatsParams)
     }
     lastMs = nowMs
 
@@ -234,13 +239,10 @@ export const doLoop = ({
       statsState.physics.frameDurationIx = (statsState.physics.frameDurationIx + 1) % statsState.physics.frameDurationsMs.length
       statsState.physics.frameDurationsMs[statsState.physics.frameDurationIx] = durationMs
       const avgFrameDurationMs = statsState.physics.frameDurationsMs.reduce<number>((acc, next) => acc + next, 0) / statsState.physics.frameDurationsMs.length
-      onStats({
-        statsType: 'physics',
-        stats: {
-          avgFrameDurationMs: avgFrameDurationMs,
-          avgFrameRate: 1 / avgFrameDurationMs * 1000
-        }
-      })
+      onStatsParams.statsType = 'physics'
+      onStatsParams.stats.avgFrameDurationMs = avgFrameDurationMs
+      onStatsParams.stats.avgFrameRate = 1 / avgFrameDurationMs * 1000
+      onStats(onStatsParams)
     }
 
     draw(getEffect(), elapsedMs)
