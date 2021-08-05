@@ -1,8 +1,6 @@
 import type { Draw, Effect } from './onContext'
 
-// export type ShouldRun = (intervalMs: number) => boolean
 export type MainLoop = (intervalMs: number) => void
-// export type StopMainLoop = () => void
 export type StopLoop = () => void
 
 export const frameLimit = 60
@@ -38,160 +36,6 @@ export interface DoLoopParams {
   onStats: OnStats
   getEffect: GetEffect
 }
-// export const doLoop = ({
-//   draw,
-//   physics,
-//   onStats
-// }: DoLoopParams): StopLoop => {
-//   let drew = false
-//   let physicsHandle: number | undefined
-//   const physicsTask = (): void => {
-//     if (!document.hidden) {
-//       // const nowMs = performance.now()
-//       physics(frameIntervalMs)
-//       // const durationMs = performance.now() - nowMs
-//       // frameDurationIx = (frameDurationIx + 1) % frameDurationsMs.length
-//       // frameDurationsMs[frameDurationIx] = durationMs
-//       // const avgFrameDurationMs = frameDurationsMs.reduce<number>((acc, next) => acc + next, 0) / frameDurationsMs.length
-//       // onStats({
-//       //   avgFrameDurationMs: avgFrameDurationMs,
-//       //   avgFrameRate: 1 / avgFrameDurationMs * 1000
-//       // })
-//       drew = false
-//     }
-//     physicsHandle = setTimeout(physicsTask, frameIntervalMs)
-//   }
-//   physicsTask()
-
-//   let renderHandle: number | undefined
-//   const renderTask = (): void => {
-//     if (!drew) {
-//       draw()
-//       drew = true
-//     }
-//     renderHandle = requestAnimationFrame(renderTask)
-//   }
-//   renderTask()
-
-//   return (): void => {
-//     clearTimeout(physicsHandle)
-//     if (renderHandle !== undefined) {
-//       cancelAnimationFrame(renderHandle)
-//     }
-//   }
-// }
-
-// export const doLoop = ({
-//   draw,
-//   physics
-// }: DoLoopParams): StopLoop => {
-//   let renderHandle: number | undefined
-//   const renderTask = (): void => {
-//     if (!document.hidden) {
-//       physics(frameIntervalMs)
-//       draw()
-//     }
-//     renderHandle = requestAnimationFrame(renderTask)
-//   }
-//   renderTask()
-//   return (): void => {
-//     if (renderHandle !== undefined) {
-//       cancelAnimationFrame(renderHandle)
-//     }
-//   }
-// }
-
-// export const doLoop = ({
-//   draw,
-//   physics
-// }: DoLoopParams): StopLoop => {
-//   let drew = false
-//   let physicsHandle: number | undefined
-//   const physicsTask = (): void => {
-//     if (!document.hidden) {
-//       physics(frameIntervalMs)
-//       drew = false
-//     }
-//   }
-//   physicsTask()
-//   setInterval(physicsTask, frameIntervalMs)
-
-//   let renderHandle: number | undefined
-//   const renderTask = (): void => {
-//     if (!drew) {
-//       draw()
-//       drew = true
-//     }
-//     renderHandle = requestAnimationFrame(renderTask)
-//   }
-//   renderTask()
-
-//   return (): void => {
-//     clearInterval(physicsHandle)
-//     if (renderHandle !== undefined) {
-//       cancelAnimationFrame(renderHandle)
-//     }
-//   }
-// }
-
-// export const doLoop = ({
-//   draw,
-//   physics,
-//   onStats
-// }: DoLoopParams): StopLoop => {
-//   let renderHandle: number | undefined
-//   let lastMs: number | undefined
-//   const renderTask = (): void => {
-//     const nowMs = performance.now()
-//     if (lastMs === undefined) {
-//       lastMs = nowMs - frameIntervalMs
-//     }
-//     const elapsedMs = nowMs - lastMs
-//     {
-//       statsState.animationFrame.frameDurationIx = (statsState.animationFrame.frameDurationIx + 1) % statsState.animationFrame.frameDurationsMs.length
-//       statsState.animationFrame.frameDurationsMs[statsState.animationFrame.frameDurationIx] = elapsedMs
-//       const avgFrameDurationMs = statsState.animationFrame.frameDurationsMs.reduce<number>((acc, next) => acc + next, 0) / statsState.physics.frameDurationsMs.length
-//       onStats({
-//         statsType: 'animationFrame',
-//         stats: {
-//           avgFrameDurationMs: avgFrameDurationMs,
-//           avgFrameRate: 1 / avgFrameDurationMs * 1000
-//         }
-//       })
-//     }
-//     lastMs = nowMs
-
-//     const preMeasureMs = performance.now()
-
-//     // animation frames seem to be scheduled not necessarily
-//     // at 60fps, but sometimes 30fps or 20fps.
-//     // be prepared to calculate 3 frames of physics in normal operation.
-//     // any more infrequent than that probably indicates page got backgrounded;
-//     // if we detect a long gap, we shouldn't attempt to catch up.
-//     physics(Math.min(elapsedMs, frameIntervalMs * 3))
-
-//     {
-//       const durationMs = performance.now() - preMeasureMs
-//       statsState.physics.frameDurationIx = (statsState.physics.frameDurationIx + 1) % statsState.physics.frameDurationsMs.length
-//       statsState.physics.frameDurationsMs[statsState.physics.frameDurationIx] = durationMs
-//       const avgFrameDurationMs = statsState.physics.frameDurationsMs.reduce<number>((acc, next) => acc + next, 0) / statsState.physics.frameDurationsMs.length
-//       onStats({
-//         statsType: 'physics',
-//         stats: {
-//           avgFrameDurationMs: avgFrameDurationMs,
-//           avgFrameRate: 1 / avgFrameDurationMs * 1000
-//         }
-//       })
-//     }
-
-//     draw()
-//     renderHandle = setTimeout(renderTask, frameIntervalMs)
-//   }
-//   renderTask()
-//   return (): void => {
-//     clearTimeout(renderHandle)
-//   }
-// }
 
 const onStatsParams: OnStatsParams = {
   statsType: 'animationFrame',
@@ -201,6 +45,23 @@ const onStatsParams: OnStatsParams = {
   }
 }
 
+// our "time elapsed since last rAF" isn't super-consistent
+// 16.66899999999987
+// 16.669000000001688
+// probably because it takes some cycles for us to compute the difference
+// use a tolerance factor when determining "how many 60ths of a second have elapsed"
+const toleranceMs = 0.1
+
+/**
+ * if we're scheduled infrequently, compute up to 1/20th of a second to try and combat motion-sickness.
+ * admittedly there's time to compute more: simulating 1/60th a second of physics
+ * takes ~3ms and our deadline is ~16ms before the next animation frame is scheduled.
+ * but if we're being scheduled less frequently than 60fps, it probably means we're
+ * having trouble keeping up, or are being deliberately throttled (e.g. backgrounded).
+ * we also don't want to heat up our CPU as we could worsen the problem.
+ */
+const maxIntervalToSimulate = frameIntervalMs * 3
+
 export const doLoop = ({
   draw,
   physics,
@@ -209,11 +70,13 @@ export const doLoop = ({
 }: DoLoopParams): StopLoop => {
   let renderHandle: number | undefined
   let lastMs: number | undefined
+
   const renderTask = (nowMs: number): void => {
     if (lastMs === undefined) {
       lastMs = nowMs - frameIntervalMs
     }
     const elapsedMs = nowMs - lastMs
+    lastMs = nowMs
     {
       statsState.animationFrame.frameDurationIx = (statsState.animationFrame.frameDurationIx + 1) % statsState.animationFrame.frameDurationsMs.length
       statsState.animationFrame.frameDurationsMs[statsState.animationFrame.frameDurationIx] = elapsedMs
@@ -223,16 +86,27 @@ export const doLoop = ({
       onStatsParams.stats.avgFrameRate = 1 / avgFrameDurationMs * 1000
       onStats(onStatsParams)
     }
-    lastMs = nowMs
 
     const preMeasureMs = performance.now()
 
-    // animation frames seem to be scheduled not necessarily
-    // at 60fps, but sometimes 30fps or 20fps.
-    // be prepared to calculate 3 frames of physics in normal operation.
-    // any more infrequent than that probably indicates page got backgrounded;
-    // if we detect a long gap, we shouldn't attempt to catch up.
-    physics(Math.min(elapsedMs, frameIntervalMs * 3))
+    /**
+     * animation frames are typically scheduled at 60fps,
+     * but if CPU is struggling they get throttled to e.g. 30fps or 20fps.
+     *
+     * we have tuned our number of particle iterations to give realistic results for simulating 1/60th second.
+     * shorter timesteps (1/120, 1/144) look realistic too with this number of particle iterations.
+     * but longer timesteps (1/30, 1/20) look bouncy.
+     *
+     * time step and iteration count are unrelated:
+     * https://google.github.io/liquidfun/Programmers-Guide/html/md__chapter02__hello__box2_d.html#stw
+     * if we want to simulate more than 1/60th of a second, we should do so by simulating 1/60th multiple times,
+     * rather than by cranking up particle iterations.
+     */
+    for (let simulatedMs = 0; simulatedMs < Math.min(elapsedMs, maxIntervalToSimulate) - toleranceMs;) {
+      const simulateMs = Math.min(elapsedMs, frameIntervalMs)
+      physics(simulateMs)
+      simulatedMs += simulateMs
+    }
 
     {
       const durationMs = performance.now() - preMeasureMs

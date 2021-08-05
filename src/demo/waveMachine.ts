@@ -177,7 +177,7 @@ export const makeWaveMachineDemo = (
     world,
     worldStep: (intervalMs: number): void => {
       // 3 particle iterations seems to be enough to simulate a 60th of a second
-      const particleIterations: number = Math.ceil(intervalMs / 3)
+      const particleIterations = 3
       const intervalSecs = intervalMs / 1000
       timeElapsedSecs += intervalSecs
       joint.SetMotorSpeed(0.05 * Math.cos(timeElapsedSecs) * Math.PI)

@@ -327,8 +327,7 @@ export const makeGravityDemo = (
   return {
     world,
     worldStep: (intervalMs: number): void => {
-      // 3 particle iterations seems to be enough to simulate a 60th of a second
-      const particleIterations: number = Math.ceil(intervalMs / 3)
+      const particleIterations = dragEnabled ? 5 : 4
       const intervalSecs = intervalMs / 1000
 
       const { set } = vec2
