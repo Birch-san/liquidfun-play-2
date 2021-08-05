@@ -53,12 +53,21 @@ const onSimulationSpeedParams: OnSimulationSpeedParams = {
   percent: 0
 }
 
-// our "time elapsed since last rAF" isn't super-consistent
-// 16.66899999999987
-// 16.669000000001688
-// probably because it takes some cycles for us to compute the difference
-// use a tolerance factor when determining "how many 60ths of a second have elapsed"
-const toleranceMs = 0.1
+/**
+ * our "time elapsed since last rAF" isn't super-consistent:
+ * 16.66899999999987
+ * 16.669000000001688
+ * perhaps because it takes some cycles for us to compute the difference.
+ *
+ * moreover, we split our timestep into 1/60th of a second steps.
+ * let's avoid computing Step(16.668) followed by Step(0.001)
+ * because particles become a snowstorm if we try to compute too small a timestep.
+ *
+ * I've seen problems when tolerance is set as low as 0.2,
+ * but 0.3 seemed stable.
+ * rounding up to 1 for a bit more safety.
+ */
+const toleranceMs = 1
 
 /**
  * if we're scheduled infrequently, compute up to 1/20th of a second to try and combat motion-sickness.
@@ -123,14 +132,23 @@ export const doLoop = ({
      */
     let iterations = 0
     let computationTimeAccMs = 0
-    const simulateMs = Math.min(elapsedMs, frameIntervalMs)
     let simulatedMs = 0
-    for (; simulatedMs < Math.min(elapsedMs, maxIntervalToSimulate) - toleranceMs;) {
-      physics(simulateMs)
-      simulatedMs += simulateMs
+    const totalToSimulateMs = Math.min(elapsedMs, maxIntervalToSimulate)
+    while (simulatedMs < totalToSimulateMs) {
+      const remainingTimeToSimulateMs = totalToSimulateMs - simulatedMs
+      const simulateMs = Math.min(remainingTimeToSimulateMs, frameIntervalMs)
+      /**
+       * if we're only 1ms away from completion: bundle it into this timestep
+       * instead of computing a super-small timestep in a subsequent iteration.
+       */
+      const roundUpIfCloseMs = remainingTimeToSimulateMs - simulateMs < toleranceMs
+        ? remainingTimeToSimulateMs
+        : simulateMs
+      physics(roundUpIfCloseMs)
+      simulatedMs += roundUpIfCloseMs
 
       /**
-       * why are we being asked to simulate more than 1/60th second?
+       * why are we being asked to simulate more than 1/60th of a second?
        * if it's a one-off (e.g. process momentarily deprioritised, or GC pause),
        * then we have a good chance to catch-up to real-time (and this will combat
        * motion-sickness).
