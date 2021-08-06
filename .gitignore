@@ -1,5 +1,7 @@
 .snowpack
 /build/
+/build-local/
+/build-birchlabs/
 /dist/
 /node_modules/
 /tsconfig.tsbuildinfo

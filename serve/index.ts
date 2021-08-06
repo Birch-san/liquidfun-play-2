@@ -9,8 +9,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(__dirname, '..')
 
 const app = express()
-app.use(express.static(resolve(repoRoot, 'build')))
+app.use(express.static(resolve(repoRoot, 'build-local')))
 // seems to resolve to UMD but whatever; it's only WASM we're trying to serve from that folder
 app.use('/box2d-wasm', express.static(dirname(require.resolve('box2d-wasm'))))
 
-app.listen(3000)
+const port = 3000
+app.listen(port, () => {
+  console.log('now listening on port', port)
+})

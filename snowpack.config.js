@@ -1,5 +1,13 @@
-const { dirname } = require('path')
+const yargs = require('yargs/yargs')
+const { hideBin } = require('yargs/helpers')
+const { dirname, resolve } = require('path')
 const { DefinePlugin } = require('webpack')
+
+const { baseUrl, out } = yargs(hideBin(process.argv))
+  .options({
+    baseUrl: { type: 'string', default: 'http://localhost/', alias: 'base-url' },
+    out: { type: 'string', default: 'build', alias: 'out-dir' }
+  }).argv
 
 /** @type {import("snowpack").SnowpackUserConfig } */
 module.exports = {
@@ -25,7 +33,7 @@ module.exports = {
     ['snowpack-plugin-copy', {
       patterns: [{
         source: dirname(require.resolve('box2d-wasm')),
-        destination: 'build/box2d-wasm'
+        destination: resolve(out, 'box2d-wasm')
       }]
     }]
   ],
@@ -44,7 +52,8 @@ module.exports = {
     /* ... */
   },
   buildOptions: {
-    baseUrl: 'https://birchlabs.co.uk/liquidfun-wasm/'
+    baseUrl,
+    out,
     /* ... */
   }
 }
