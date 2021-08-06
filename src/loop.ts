@@ -59,13 +59,10 @@ const onSimulationSpeedParams: OnSimulationSpeedParams = {
  * 16.669000000001688
  * perhaps because it takes some cycles for us to compute the difference.
  *
- * moreover, we split our timestep into 1/60th of a second steps.
- * let's avoid computing Step(16.668) followed by Step(0.001)
- * because particles become a snowstorm if we try to compute too small a timestep.
- *
- * I've seen problems when tolerance is set as low as 0.2,
- * but 0.3 seemed stable.
- * rounding up to 1 for a bit more safety.
+ * it's better to compute Step(16.4) than to simulate no physics at all
+ * and simulate Step(16.4 + x) on the next frame.
+ * 
+ * so this variable is "are we close enough to 1/60th of a second"
  */
 const toleranceMs = 0.2
 
@@ -84,12 +81,10 @@ const maxIntervalToSimulate = frameIntervalMs * 3
  * otherwise scheduler won't ask us for another animation frame
  * 1/60 secs from now.
  * note that physics isn't the only thing we compute per time step,
- * but it substantially dominates time (rendering happens afterward,
- * but takes ~1ms on-CPU time)
+ * but it substantially dominates time (e.g. rendering happens afterward,
+ * but takes only ~1ms on-CPU time)
  */
 const physicsDeadlineMs = frameIntervalMs * 0.7
-
-// const toleranceMs
 
 export const doLoop = ({
   draw,
@@ -138,8 +133,8 @@ export const doLoop = ({
      * if we want to simulate less than 1/60th of a second... we should do so by accumulating the time and waiting
      * for the next schedule.
      */
-    const initialToSimulateMs = elapsedMs + timeDebtMs
-    let toSimulateMs = initialToSimulateMs
+    const intendedToSimulateMs = elapsedMs + timeDebtMs
+    let toSimulateMs = intendedToSimulateMs
     skip = toSimulateMs < frameIntervalMs - toleranceMs
     let iterations = 0
     let computationTimeAccMs = 0
@@ -166,9 +161,11 @@ export const doLoop = ({
       physics(simulateMs)
       toSimulateMs -= simulateMs
     }
-    timeDebtMs = Math.min(toSimulateMs, frameIntervalMs * 3)
+    timeDebtMs = Math.min(toSimulateMs, maxIntervalToSimulate)
 
-    onSimulationSpeedParams.percent = (initialToSimulateMs - (toSimulateMs + badDebtMs)) / initialToSimulateMs * 100
+    const timeRemainingToSimulateMs = toSimulateMs + badDebtMs
+    const actuallySimulatedMs = intendedToSimulateMs - timeRemainingToSimulateMs
+    onSimulationSpeedParams.percent = actuallySimulatedMs / intendedToSimulateMs * 100
     onSimulationSpeed(onSimulationSpeedParams)
 
     {
