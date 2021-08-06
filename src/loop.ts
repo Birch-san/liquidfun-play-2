@@ -67,7 +67,7 @@ const onSimulationSpeedParams: OnSimulationSpeedParams = {
  * but 0.3 seemed stable.
  * rounding up to 1 for a bit more safety.
  */
-const toleranceMs = 1
+const toleranceMs = 0.2
 
 /**
  * if we're scheduled infrequently, compute up to 1/20th of a second to try and combat motion-sickness.
@@ -89,6 +89,8 @@ const maxIntervalToSimulate = frameIntervalMs * 3
  */
 const physicsDeadlineMs = frameIntervalMs * 0.7
 
+// const toleranceMs
+
 export const doLoop = ({
   draw,
   physics,
@@ -99,6 +101,8 @@ export const doLoop = ({
   let renderHandle: number | undefined
   let lastMs: number | undefined
 
+  let timeDebtMs = 0
+  let skip = false
   const renderTask = (nowMs: number): void => {
     if (lastMs === undefined) {
       lastMs = nowMs - frameIntervalMs
@@ -122,54 +126,82 @@ export const doLoop = ({
      * but if CPU is struggling they get throttled to e.g. 30fps or 20fps.
      *
      * we have tuned our number of particle iterations to give realistic results for simulating 1/60th second.
-     * shorter timesteps (1/120, 1/144) look realistic too with this number of particle iterations.
-     * but longer timesteps (1/30, 1/20) look bouncy.
+     * shorter timesteps (1/120, 1/144) explode out further.
+     * longer timesteps (1/30, 1/20) clump together.
+     * some browser interactions (e.g. selecting text on Safari) cause rAF to schedule us far more frequently than 60fps.
+     * we must not simulate too short of a timestep, as that will cause particles to explode out.
      *
      * time step and iteration count are unrelated:
      * https://google.github.io/liquidfun/Programmers-Guide/html/md__chapter02__hello__box2_d.html#stw
      * if we want to simulate more than 1/60th of a second, we should do so by simulating 1/60th multiple times,
      * rather than by cranking up particle iterations.
+     * if we want to simulate less than 1/60th of a second... we should do so by accumulating the time and waiting
+     * for the next schedule.
      */
-    let iterations = 0
-    let computationTimeAccMs = 0
-    let simulatedMs = 0
-    const totalToSimulateMs = Math.min(elapsedMs, maxIntervalToSimulate)
-    while (simulatedMs < totalToSimulateMs) {
-      const remainingTimeToSimulateMs = totalToSimulateMs - simulatedMs
-      const simulateMs = Math.min(remainingTimeToSimulateMs, frameIntervalMs)
-      /**
-       * if we're only 1ms away from completion: bundle it into this timestep
-       * instead of computing a super-small timestep in a subsequent iteration.
-       */
-      const roundUpIfCloseMs = remainingTimeToSimulateMs - simulateMs < toleranceMs
-        ? remainingTimeToSimulateMs
-        : simulateMs
-      physics(roundUpIfCloseMs)
-      simulatedMs += roundUpIfCloseMs
-
-      /**
-       * why are we being asked to simulate more than 1/60th of a second?
-       * if it's a one-off (e.g. process momentarily deprioritised, or GC pause),
-       * then we have a good chance to catch-up to real-time (and this will combat
-       * motion-sickness).
-       *
-       * but if the gap in being scheduled is because the CPU's running too hot
-       * to keep up with demand: trying to catch-up the lost time only worsens the problem;
-       * better failure mode is to throttle the simulation (which will look like slow-mo).
-       */
-      iterations++
-      computationTimeAccMs = performance.now() - beforePhysicsMs
-      const avgComputationTimeMs = computationTimeAccMs / iterations
-      const timeToSimulateAnother60thMs = computationTimeAccMs + avgComputationTimeMs
-      // would computing another frame exceed our deadline?
-      if (timeToSimulateAnother60thMs > physicsDeadlineMs) {
-        // fine, go slow-motion instead
-        // (gives CPU a chance to cool down)
-        break
-      }
+    skip = elapsedMs + timeDebtMs < frameIntervalMs - toleranceMs
+    let toSimulateMs = elapsedMs + timeDebtMs
+    if (skip) {
+      timeDebtMs = Math.min(toSimulateMs, frameIntervalMs * 2)
     }
+    while (toSimulateMs >= frameIntervalMs - toleranceMs) {
+      const simulateMs = Math.min(toSimulateMs, frameIntervalMs)
+      physics(simulateMs)
+      toSimulateMs -= simulateMs
+    }
+    timeDebtMs = toSimulateMs
+    // physics(Math.min(elapsedMs, maxIntervalToSimulate))
+    // const simulatedMs = frameIntervalMs // Math.min(elapsedMs, frameIntervalMs)
+    // physics(simulatedMs)
+    // let iterations = 0
+    // let computationTimeAccMs = 0
+    // let simulatedMs = 0
+    // const totalToSimulateMs = Math.min(elapsedMs, maxIntervalToSimulate)
+    // let perIterationMs = totalToSimulateMs > frameIntervalMs * 1.5
+    //   ? 
+    // while (simulatedMs < totalToSimulateMs) {
+    //   const remainingTimeToSimulateMs = totalToSimulateMs - simulatedMs
+    //   const simulateMs = Math.min(remainingTimeToSimulateMs, frameIntervalMs)
+    //   // if (remainingTimeToSimulateMs - simulateMs < toleranceMs) {
+    //   //   console.log(remainingTimeToSimulateMs - simulateMs)
+    //   // }
+    //   /**
+    //    * if we're only 1ms away from completion: bundle it into this timestep
+    //    * instead of computing a super-small timestep in a subsequent iteration.
+    //    */
+    //   const roundUpIfCloseMs = remainingTimeToSimulateMs - simulateMs < toleranceMs
+    //     ? remainingTimeToSimulateMs
+    //     : simulateMs
+    //   if (roundUpIfCloseMs < 16) {
+    //     console.log(roundUpIfCloseMs.toFixed(2))
+    //   }
+    //   physics(roundUpIfCloseMs)
+    //   simulatedMs += roundUpIfCloseMs
 
-    onSimulationSpeedParams.percent = simulatedMs / elapsedMs * 100
+    //   /**
+    //    * why are we being asked to simulate more than 1/60th of a second?
+    //    * if it's a one-off (e.g. process momentarily deprioritised, or GC pause),
+    //    * then we have a good chance to catch-up to real-time (and this will combat
+    //    * motion-sickness).
+    //    *
+    //    * but if the gap in being scheduled is because the CPU's running too hot
+    //    * to keep up with demand: trying to catch-up the lost time only worsens the problem;
+    //    * better failure mode is to throttle the simulation (which will look like slow-mo).
+    //    */
+    //   iterations++
+    //   computationTimeAccMs = performance.now() - beforePhysicsMs
+    //   const avgComputationTimeMs = computationTimeAccMs / iterations
+    //   const timeToSimulateAnother60thMs = computationTimeAccMs + avgComputationTimeMs
+    //   // would computing another frame exceed our deadline?
+    //   if (timeToSimulateAnother60thMs > physicsDeadlineMs) {
+    //     // fine, go slow-motion instead
+    //     // (gives CPU a chance to cool down)
+    //     break
+    //   }
+    // }
+    // console.log(iterations)
+
+    // onSimulationSpeedParams.percent = simulatedMs / elapsedMs * 100
+    onSimulationSpeedParams.percent = 100
     onSimulationSpeed(onSimulationSpeedParams)
 
     {
@@ -185,7 +217,9 @@ export const doLoop = ({
 
     const beforeDrawMs = performance.now()
 
-    draw(getEffect(), elapsedMs)
+    if (!skip) {
+      draw(getEffect(), elapsedMs + timeDebtMs)
+    }
 
     {
       const durationMs = performance.now() - beforeDrawMs
