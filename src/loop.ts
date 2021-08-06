@@ -138,70 +138,37 @@ export const doLoop = ({
      * if we want to simulate less than 1/60th of a second... we should do so by accumulating the time and waiting
      * for the next schedule.
      */
-    skip = elapsedMs + timeDebtMs < frameIntervalMs - toleranceMs
-    let toSimulateMs = elapsedMs + timeDebtMs
-    if (skip) {
-      timeDebtMs = Math.min(toSimulateMs, frameIntervalMs * 2)
-    }
+    const initialToSimulateMs = elapsedMs + timeDebtMs
+    let toSimulateMs = initialToSimulateMs
+    skip = toSimulateMs < frameIntervalMs - toleranceMs
+    let iterations = 0
+    let computationTimeAccMs = 0
+    let badDebtMs = 0
     while (toSimulateMs >= frameIntervalMs - toleranceMs) {
-      const simulateMs = Math.min(toSimulateMs, frameIntervalMs)
+      if (iterations > 0) {
+        computationTimeAccMs = performance.now() - beforePhysicsMs
+        const avgComputationTimeMs = computationTimeAccMs / iterations
+        const timeToSimulateAnother60thMs = computationTimeAccMs + avgComputationTimeMs
+        if (timeToSimulateAnother60thMs > physicsDeadlineMs) {
+          /**
+           * there's not enough time to compute this next iteration.
+           * this will look like slow-motion (and cause motion-sickness).
+           * nevertheless: throttling the simulation is our best option
+           * (lets the CPU cool down).
+           */
+          badDebtMs = toSimulateMs
+          toSimulateMs = 0
+          break
+        }
+      }
+      iterations++
+      const simulateMs = Math.min(toSimulateMs, frameIntervalMs + toleranceMs)
       physics(simulateMs)
       toSimulateMs -= simulateMs
     }
-    timeDebtMs = toSimulateMs
-    // physics(Math.min(elapsedMs, maxIntervalToSimulate))
-    // const simulatedMs = frameIntervalMs // Math.min(elapsedMs, frameIntervalMs)
-    // physics(simulatedMs)
-    // let iterations = 0
-    // let computationTimeAccMs = 0
-    // let simulatedMs = 0
-    // const totalToSimulateMs = Math.min(elapsedMs, maxIntervalToSimulate)
-    // let perIterationMs = totalToSimulateMs > frameIntervalMs * 1.5
-    //   ? 
-    // while (simulatedMs < totalToSimulateMs) {
-    //   const remainingTimeToSimulateMs = totalToSimulateMs - simulatedMs
-    //   const simulateMs = Math.min(remainingTimeToSimulateMs, frameIntervalMs)
-    //   // if (remainingTimeToSimulateMs - simulateMs < toleranceMs) {
-    //   //   console.log(remainingTimeToSimulateMs - simulateMs)
-    //   // }
-    //   /**
-    //    * if we're only 1ms away from completion: bundle it into this timestep
-    //    * instead of computing a super-small timestep in a subsequent iteration.
-    //    */
-    //   const roundUpIfCloseMs = remainingTimeToSimulateMs - simulateMs < toleranceMs
-    //     ? remainingTimeToSimulateMs
-    //     : simulateMs
-    //   if (roundUpIfCloseMs < 16) {
-    //     console.log(roundUpIfCloseMs.toFixed(2))
-    //   }
-    //   physics(roundUpIfCloseMs)
-    //   simulatedMs += roundUpIfCloseMs
+    timeDebtMs = Math.min(toSimulateMs, frameIntervalMs * 3)
 
-    //   /**
-    //    * why are we being asked to simulate more than 1/60th of a second?
-    //    * if it's a one-off (e.g. process momentarily deprioritised, or GC pause),
-    //    * then we have a good chance to catch-up to real-time (and this will combat
-    //    * motion-sickness).
-    //    *
-    //    * but if the gap in being scheduled is because the CPU's running too hot
-    //    * to keep up with demand: trying to catch-up the lost time only worsens the problem;
-    //    * better failure mode is to throttle the simulation (which will look like slow-mo).
-    //    */
-    //   iterations++
-    //   computationTimeAccMs = performance.now() - beforePhysicsMs
-    //   const avgComputationTimeMs = computationTimeAccMs / iterations
-    //   const timeToSimulateAnother60thMs = computationTimeAccMs + avgComputationTimeMs
-    //   // would computing another frame exceed our deadline?
-    //   if (timeToSimulateAnother60thMs > physicsDeadlineMs) {
-    //     // fine, go slow-motion instead
-    //     // (gives CPU a chance to cool down)
-    //     break
-    //   }
-    // }
-    // console.log(iterations)
-
-    // onSimulationSpeedParams.percent = simulatedMs / elapsedMs * 100
-    onSimulationSpeedParams.percent = 100
+    onSimulationSpeedParams.percent = (initialToSimulateMs - (toSimulateMs + badDebtMs)) / initialToSimulateMs * 100
     onSimulationSpeed(onSimulationSpeedParams)
 
     {
