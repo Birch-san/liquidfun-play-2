@@ -11,6 +11,7 @@ const { baseUrl, out } = yargs(hideBin(process.argv))
 
 /** @type {import("snowpack").SnowpackUserConfig } */
 module.exports = {
+  workspaceRoot: '..',
   mount: {
     public: { url: '/', static: true },
     [dirname(require.resolve('box2d-wasm'))]: { url: '/box2d-wasm', static: true },
@@ -54,6 +55,7 @@ module.exports = {
   buildOptions: {
     baseUrl,
     out,
+    sourcemap: true
     /* ... */
   }
 }

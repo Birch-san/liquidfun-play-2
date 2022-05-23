@@ -36,7 +36,7 @@
 
   let canvasElement: HTMLCanvasElement | undefined
 
-  let demo: Demo = Demo.Gravity
+  let demo: Demo = Demo.Ramp2
 
   const demoParams: DemoParams = {
     waveMachineGravity: WaveMachineGravity.Down,
@@ -118,10 +118,10 @@
       draw,
       getEffect: () => effect,
       physics,
-      onStats: ({ statsType, stats }: OnStatsParams) => {
-        Object.assign(statsModel[statsType], stats)
+      onStats: (/*{ statsType, stats }: OnStatsParams*/) => {
+        // Object.assign(statsModel[statsType], stats)
         // trigger Svelte's change-detection
-        statsModel = statsModel
+        // statsModel = statsModel
       },
       onSimulationSpeed: ({ percent }: OnSimulationSpeedParams) => {
         simulationSpeedPercent = percent
@@ -178,7 +178,7 @@ Your browser supports <a href="https://v8.dev/features/simd">WebAssembly SIMD</a
 Your browser does not support a <a href="https://v8.dev/features/simd">WebAssembly SIMD</a>; falling back to standard WebAssembly featureset.
 {/if}
 </small></p>
-<table class="perf">
+<!-- <table class="perf">
   <thead>
     <th class="info-head perf-head-column"></th>
     <th class="perf-head perf-head-column perf-reading-head">Duration (ms)</th>
@@ -201,8 +201,8 @@ Your browser does not support a <a href="https://v8.dev/features/simd">WebAssemb
       <td class="perf-reading">{Math.floor(statsModel.animationFrame.avgFrameRate)}</td>
     </tr>
   </tbody>
-</table>
-<table>
+</table> -->
+<!-- <table>
   <thead>
     <th class="info-head perf-head-column"></th>
     <th class="perf-head perf-head-column perf-reading-head">of real-time (%)</th>
@@ -213,8 +213,8 @@ Your browser does not support a <a href="https://v8.dev/features/simd">WebAssemb
       <td class="perf-reading">{Math.ceil(simulationSpeedPercent)}</td>
     </tr>
   </tbody>
-</table>
-<details>
+</table> -->
+<!-- <details>
   <summary>Performance explanation</summary>
   <dl>
     <dt><small>Physics duration:</small></dt>
@@ -238,7 +238,7 @@ Your browser does not support a <a href="https://v8.dev/features/simd">WebAssemb
     The <strong>physics rate</strong> can be thought of as our <em>maximum achievable framerate</em> (though this simple extrapolation ignores realities like CPU temperature).<br>  
     The <strong>paint interval rate</strong> can be thought of as our actual achieved framerate.
   </small></p>
-</details>
+</details> -->
 <canvas
 bind:this={canvasElement}
 on:pointerdown={handleMouseDown}
@@ -254,6 +254,10 @@ height={height}
   <label title="Basic use of Box2D without any liquidfun-specific features">
     <input type=radio bind:group={demo} value={Demo.Ramp} on:change={onChangeDemo}>
     Ramp
+  </label>
+  <label title="Another ramp demo">
+    <input type=radio bind:group={demo} value={Demo.Ramp2} on:change={onChangeDemo}>
+    Ramp 2
   </label>
   <label>
     <input type=radio bind:group={demo} value={Demo.Gravity} on:change={onChangeDemo}>
@@ -297,7 +301,7 @@ height={height}
   </label>
 </fieldset>
 {/if}
-{#if [Demo.Gravity, Demo.WaveMachine].includes(demo) }
+{#if [Demo.Gravity, Demo.Ramp2, Demo.WaveMachine].includes(demo) }
 <fieldset>
   <legend>Particle Shader</legend>
   <label>

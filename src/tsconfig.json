@@ -19,6 +19,7 @@
     "strict": true,
     "skipLibCheck": false,
     "isolatedModules": true,
-    "tsBuildInfoFile": "../tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "../tsconfig.tsbuildinfo",
+    "sourceMap": true
   }
 }

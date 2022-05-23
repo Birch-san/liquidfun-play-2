@@ -121,6 +121,10 @@ const DrawPolygon: Box2D.JSDraw['DrawPolygon'] =
   }
 }
 
+export const debugDrawConfig = {
+  radiusCoeff: 1
+}
+
 export const debugDraw = Object.assign<
 Box2D.JSDraw,
 Partial<Box2D.JSDraw>
@@ -153,7 +157,7 @@ Partial<Box2D.JSDraw>
     drawBuffer.particles.centres.set(new Float32Array(HEAPF32.buffer, centers_p, count * drawBuffer.particles.centres.elemSize))
     drawBuffer.particles.centres.length = count
     drawBuffer.particles.radii.length = count
-    drawBuffer.particles.systemRadius = radius
+    drawBuffer.particles.systemRadius = radius * debugDrawConfig.radiusCoeff
     // drawBuffer.circles.radii.fill(radius)
     // the colour's just black, so this wasn't very impressive
     // drawBuffer.circles.color[0] = HEAPF32[colors_p >> 2]

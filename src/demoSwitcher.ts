@@ -2,11 +2,12 @@ import type { mat3 } from 'gl-matrix'
 import type { MainLoop } from './loop'
 import type { MutateMatrix, GetDrawBuffer, GetPixelsPerMeter } from './onContext'
 import type { DrawBuffer } from './debugDraw'
-import { debugDraw, drawBuffer, flushDrawBuffer } from './debugDraw'
+import { debugDraw, drawBuffer, flushDrawBuffer, debugDrawConfig } from './debugDraw'
 import type { DestroyDemo, EventHandlers, WorldStep, WaveMachineGravity } from './demo'
 import {
   Demo,
   makeRampDemo,
+  makeRamp2Demo,
   makeGravityDemo,
   makeWaveMachineDemo
 } from './demo'
@@ -35,6 +36,7 @@ export const switchDemo = (proposedDemo: Demo, { dragEnabled, waveMachineGravity
   matrixMutatorMetresToCanvas = undefined
   getPixelsPerMeter = undefined
   clearCanvas?.()
+  debugDrawConfig.radiusCoeff = 1;
   switch (proposedDemo) {
     case Demo.None:
       world = undefined
@@ -42,6 +44,12 @@ export const switchDemo = (proposedDemo: Demo, { dragEnabled, waveMachineGravity
     case Demo.Ramp: {
       const boxCount = 100;
       ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter, eventHandlers } = makeRampDemo(debugDraw, boxCount))
+      break
+    }
+    case Demo.Ramp2: {
+      const boxCount = 100;
+      debugDrawConfig.radiusCoeff = 8;
+      ({ world, destroyDemo, worldStep, matrixMutator, getPixelsPerMeter, eventHandlers } = makeRamp2Demo(debugDraw, boxCount))
       break
     }
     case Demo.Gravity: {
